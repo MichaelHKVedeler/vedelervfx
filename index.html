@@ -3,75 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Michael Vedeler – XR / 3D / Real-time</title>
+  <title>vedelervfx</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
+  <div id="color-bends"></div>
 
-  <header class="hero">
-    <h1>Michael Vedeler</h1>
-    <p>XR · 3D · Real-time · Visual Systems</p>
-  </header>
+  <div class="ui">
+    <header class="topbar">
+      <div class="brand" data-view="home">vedelervfx</div>
 
-  <main>
+      <nav class="nav">
+        <button class="navbtn is-active" data-view="home">Home</button>
+        <button class="navbtn" data-view="portfolio">Portfolio</button>
+        <button class="navbtn" data-view="about">About</button>
+        <button class="navbtn" data-view="contact">Contact</button>
+      </nav>
+    </header>
 
-    <section id="about">
-      <h2>About me</h2>
-      <p>
-        I work with XR, real-time graphics, and 3D pipelines, focusing on
-        high-quality visual systems and tools for production.
-      </p>
-      <p>
-        My background spans architecture visualization, interactive media,
-        and real-time rendering, with a strong interest in technical workflows
-        and creative tooling.
-      </p>
-    </section>
-
-    <section id="portfolio">
-      <h2>Portfolio</h2>
-
-      <div class="portfolio-grid">
-        <div class="portfolio-item">
-          <div class="thumb"></div>
-          <h3>Material Viewer</h3>
-          <p>Real-time material and lighting exploration using custom shader passes.</p>
+    <main class="stage">
+      <section class="panel is-active" data-panel="home">
+        <h1 class="hero-title">vedelervfx</h1>
+        <p class="hero-sub">
+          Immersive worlds through VFX, animation & real-time 3D.
+        </p>
+        <div class="hero-actions">
+          <button class="cta" data-view="portfolio">View portfolio</button>
+          <button class="cta ghost" data-view="contact">Contact</button>
         </div>
+      </section>
 
-        <div class="portfolio-item">
-          <div class="thumb"></div>
-          <h3>XR Visual System</h3>
-          <p>Interactive XR experience with optimized real-time rendering.</p>
+      <section class="panel" data-panel="portfolio">
+        <h2>Portfolio</h2>
+        <p class="muted">Selected work. More coming soon.</p>
+
+        <div class="portfolio-grid">
+          <div class="portfolio-item">
+            <div class="thumb"></div>
+            <h3>Material Viewer</h3>
+            <p>Real-time material and lighting exploration using custom shader passes.</p>
+          </div>
+
+          <div class="portfolio-item">
+            <div class="thumb"></div>
+            <h3>Real-time 3D Experiences</h3>
+            <p>High-fidelity interactive visuals delivered efficiently and at scale.</p>
+          </div>
+
+          <div class="portfolio-item">
+            <div class="thumb"></div>
+            <h3>3D Pipeline Tools</h3>
+            <p>Custom tools and workflows for production, iteration, and delivery.</p>
+          </div>
         </div>
+      </section>
 
-        <div class="portfolio-item">
-          <div class="thumb"></div>
-          <h3>3D Pipeline Tools</h3>
-          <p>Custom Blender tools for data-driven rendering and export workflows.</p>
-        </div>
-      </div>
-    </section>
+      <section class="panel" data-panel="about">
+        <h2>About</h2>
+        <p>
+          I’m a 3D generalist working with VFX, animation, and real-time graphics,
+          driven by a love for creating immersive and atmospheric worlds.
+        </p>
+        <p>
+          I care deeply about mood, light, scale, and the subtle details that make a scene feel alive.
+          Alongside that, I’ve spent much of my recent work building real-time 3D experiences and
+          visual systems—pushing quality while staying flexible in how the work is experienced.
+        </p>
+      </section>
 
-    <section id="contact">
-      <h2>Contact</h2>
-      <p>
-        Email:
-        <a href="mailto:michael@example.com">michael@example.com</a>
-      </p>
-      <p>
-        GitHub:
-        <a href="https://github.com/MichaelHKVedeler" target="_blank">
-          github.com/MichaelHKVedeler
-        </a>
-      </p>
-    </section>
+      <section class="panel" data-panel="contact">
+        <h2>Contact</h2>
+        <p>
+          Email: <a href="mailto:michaelvedeler@gmail.com">michaelvedeler@gmail.com</a>
+        </p>
+        <p>
+          GitHub:
+          <a href="https://github.com/MichaelHKVedeler" target="_blank" rel="noreferrer">
+            github.com/MichaelHKVedeler
+          </a>
+        </p>
+      </section>
+    </main>
 
-  </main>
+    <footer class="foot">
+      <p>© 2025 Michael Vedeler</p>
+    </footer>
+  </div>
 
-  <footer>
-    <p>© 2025 Michael Vedeler</p>
-  </footer>
-
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
