@@ -80,14 +80,32 @@ let scrollPos = 0;
 let targetPos = 0;
 
 function measureSetWidth() {
-  // We built 3 identical copies -> 1 set = totalWidth / 3
-  const w = track.scrollWidth;
-  setWidth = w / 3;
+  const viewport = document.querySelector(".reel-viewport");
+  const items = track.querySelectorAll(".reel-item");
+  
+  if (!viewport || !items.length) return;
 
-  // Start centered on the middle copy
-  scrollPos = setWidth;
-  targetPos = scrollPos;
+  // 1. Measure the width of one full set of projects
+  // We use the first item of the second set to find where the "loop" starts
+  const firstItemOfSecondSet = items[PROJECTS.length];
+  setWidth = firstItemOfSecondSet.offsetLeft; 
+
+  const viewportCenter = viewport.clientWidth * 0.5;
+  const itemWidth = items[0].offsetWidth;
+  const gap = 22; // Matching your CSS gap
+
+  // 2. To center the FIRST item of the SECOND set:
+  // We need the track to move so that (ItemLeft - scrollPos) = (ViewportCenter - ItemWidth/2)
+  const targetInitialPos = firstItemOfSecondSet.offsetLeft - (viewportCenter - itemWidth / 2);
+  
+  scrollPos = targetInitialPos;
+  targetPos = targetInitialPos;
 }
+
+// Call it after a tiny delay to ensure CSS transitions/fonts are ready
+window.addEventListener("load", () => {
+  measureSetWidth();
+});
 
 requestAnimationFrame(measureSetWidth);
 window.addEventListener("resize", () => requestAnimationFrame(measureSetWidth));
