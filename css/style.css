@@ -42,14 +42,6 @@ body::before {
   --ui-pad: 40px; /* Increased from 20px for a more premium look */
 }
 
-.brand-box {
-  width: 72px; /* Matches .navbtn width */
-  display: flex;
-  justify-content: flex-start; /* Keeps text aligned to the left edge */
-  align-items: center;
-  line-height: 1;
-}
-
 .brand-float {
   position: fixed;
   top: var(--ui-pad);
@@ -58,12 +50,13 @@ body::before {
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: lowercase;
+  text-align: bottom;
+  line-height: 1;
   height: 18px;
   cursor: pointer;
   user-select: none;
   color: rgba(255,255,255,0.92);
   display: flex;
-  align-items: center;
 }
 
 .nav-float{

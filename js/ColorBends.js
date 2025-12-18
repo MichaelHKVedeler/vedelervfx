@@ -260,28 +260,88 @@ export function initColorBends(container, opts = {}) {
 
   window.addEventListener("pointermove", onPointerMove);
 
-
   let raf = 0;
 
-  function setParams(p = {}) {
-    if (typeof p.speed === "number") material.uniforms.uSpeed.value = p.speed;
-    if (typeof p.scale === "number") material.uniforms.uScale.value = p.scale;
-    if (typeof p.frequency === "number") material.uniforms.uFrequency.value = p.frequency;
-    if (typeof p.warpStrength === "number") material.uniforms.uWarpStrength.value = p.warpStrength;
-    if (typeof p.mouseInfluence === "number") material.uniforms.uMouseInfluence.value = p.mouseInfluence;
-    if (typeof p.parallax === "number") material.uniforms.uParallax.value = p.parallax;
-    if (typeof p.noise === "number") material.uniforms.uNoise.value = p.noise;
+  // --- preset transition (linger) ---
+  const transition = {
+    active: false,
+    elapsed: 0,
+    dur: 0.65,
+    start: null,
+    end: null,
+  };
 
-    if (typeof p.vignette === "number") material.uniforms.uVignette.value = p.vignette;
-    if (typeof p.aberration === "number") material.uniforms.uAberration.value = p.aberration;
-    }
+  function smoothstep(x) {
+    x = Math.max(0, Math.min(1, x));
+    return x < 0.5
+      ? 4 * x * x * x
+      : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  }
+
+  function setParams(p = {}) {
+    const u = material.uniforms;
+
+    // snapshot current -> start
+    transition.start = {
+      speed: u.uSpeed.value,
+      warpStrength: u.uWarpStrength.value,
+      mouseInfluence: u.uMouseInfluence.value,
+      parallax: u.uParallax.value,
+      noise: u.uNoise.value,
+      vignette: u.uVignette.value,
+      aberration: u.uAberration.value,
+      scale: u.uScale.value,
+      frequency: u.uFrequency.value,
+    };
+
+    // build end using provided values (fallback = current)
+    transition.end = {
+      speed: (typeof p.speed === "number") ? p.speed : transition.start.speed,
+      warpStrength: (typeof p.warpStrength === "number") ? p.warpStrength : transition.start.warpStrength,
+      mouseInfluence: (typeof p.mouseInfluence === "number") ? p.mouseInfluence : transition.start.mouseInfluence,
+      parallax: (typeof p.parallax === "number") ? p.parallax : transition.start.parallax,
+      noise: (typeof p.noise === "number") ? p.noise : transition.start.noise,
+      vignette: (typeof p.vignette === "number") ? p.vignette : transition.start.vignette,
+      aberration: (typeof p.aberration === "number") ? p.aberration : transition.start.aberration,
+      scale: (typeof p.scale === "number") ? p.scale : transition.start.scale,
+      frequency: (typeof p.frequency === "number") ? p.frequency : transition.start.frequency,
+    };
+
+    // Optional: allow overriding linger duration from main.js
+    if (typeof p.linger === "number") transition.dur = Math.max(0.05, p.linger);
+
+    transition.elapsed = 0;
+    transition.active = true;
+  }
 
 
   function loop() {
-    const dt = clock.getDelta();
+    const dt = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.elapsedTime;
 
     material.uniforms.uTime.value = elapsed;
+
+    // --- apply linger transition ---
+    if (transition.active && transition.start && transition.end) {
+      transition.elapsed += dt;
+      const t = Math.min(1, transition.elapsed / transition.dur);
+
+      // true ease-in / ease-out
+      const k = smoothstep(t);
+      const u = material.uniforms;
+
+      u.uSpeed.value          = transition.start.speed          + (transition.end.speed          - transition.start.speed)          * k;
+      u.uWarpStrength.value   = transition.start.warpStrength   + (transition.end.warpStrength   - transition.start.warpStrength)   * k;
+      u.uMouseInfluence.value = transition.start.mouseInfluence + (transition.end.mouseInfluence - transition.start.mouseInfluence) * k;
+      u.uParallax.value       = transition.start.parallax       + (transition.end.parallax       - transition.start.parallax)       * k;
+      u.uNoise.value          = transition.start.noise          + (transition.end.noise          - transition.start.noise)          * k;
+      u.uVignette.value       = transition.start.vignette       + (transition.end.vignette       - transition.start.vignette)       * k;
+      u.uAberration.value     = transition.start.aberration     + (transition.end.aberration     - transition.start.aberration)     * k;
+      u.uScale.value          = transition.start.scale          + (transition.end.scale          - transition.start.scale)          * k;
+      u.uFrequency.value      = transition.start.frequency      + (transition.end.frequency      - transition.start.frequency)      * k;
+
+      if (transition.t >= 1) transition.active = false;
+    }
 
     const deg = (options.rotation % 360) + options.autoRotate * elapsed;
     const rad = (deg * Math.PI) / 180;
