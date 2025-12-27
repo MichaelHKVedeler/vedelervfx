@@ -1,5 +1,7 @@
 import { initColorBends } from "./ColorBends.js";
 
+import { createGradualBlur } from "./GradualBlur.js";
+
 const el = document.getElementById("color-bends");
 
 const bg = initColorBends(el, {
@@ -50,17 +52,37 @@ setView("home");
 
 const track = document.getElementById("reel-track");
 
-// 10 dummy projects (random colors)
-const PROJECTS = Array.from({ length: 10 }, (_, i) => ({
+// Specific filenames from your assets/portfolio folder
+const thumbnails = [
+  "01_karpeworld_thumbnail.jpg",
+  "02_flax_thumbnail.jpg",
+  "03_bossfight_thumbnail.jpg",
+  "04_coast_thumbnail.jpg",
+  "05_CCTV_thumbnail.jpg",
+  "06_lego_thumbnail.jpg",
+  "07_robotcitadel_thumbnail.jpg",
+  "08_eternalascend_thumbnail.jpg",
+  "09_hospital_thumbnail.jpg",
+  "10_endlessengines_thumbnail.jpg"
+];
+
+const PROJECTS = thumbnails.map((filename, i) => ({
   id: i,
-  color: randomNiceColor(),
+  img: `assets/portfolio/${filename}`, // Path relative to index.html
+  title: filename.replace(/_/g, " ").replace(".jpg", "") // Clean up name for hover title
 }));
 
 function makeItem(p) {
   const d = document.createElement("div");
   d.className = "reel-item";
-  d.style.background = p.color;
-  d.title = `Project ${p.id + 1}`;
+  
+  // Apply image as background
+  d.style.backgroundImage = `url("${p.img}")`;
+  d.style.backgroundSize = "cover";
+  d.style.backgroundPosition = "center";
+  d.style.backgroundColor = "#111"; // Fallback color while loading
+  
+  d.title = p.title;
   return d;
 }
 
@@ -74,8 +96,6 @@ function buildReel() {
 buildReel();
 
 let setWidth = 0;
-
-// scroll state (does not get wrapped — only the render does)
 let scrollPos = 0;
 let targetPos = 0;
 
@@ -86,49 +106,43 @@ function measureSetWidth() {
   if (!viewport || !items.length) return;
 
   // 1. Measure the width of one full set of projects
-  // We use the first item of the second set to find where the "loop" starts
   const firstItemOfSecondSet = items[PROJECTS.length];
+  
+  // Safety check in case images load slowly or DOM isn't ready
+  if (!firstItemOfSecondSet) return;
+
   setWidth = firstItemOfSecondSet.offsetLeft; 
 
   const viewportCenter = viewport.clientWidth * 0.5;
   const itemWidth = items[0].offsetWidth;
-  const gap = 22; // Matching your CSS gap
-
-  // 2. To center the FIRST item of the SECOND set:
-  // We need the track to move so that (ItemLeft - scrollPos) = (ViewportCenter - ItemWidth/2)
+  
+  // 2. Center the FIRST item of the SECOND set
   const targetInitialPos = firstItemOfSecondSet.offsetLeft - (viewportCenter - itemWidth / 2);
   
-  scrollPos = targetInitialPos;
-  targetPos = targetInitialPos;
+  // Only set scale positions if this is the first measurement
+  if (scrollPos === 0) {
+      scrollPos = targetInitialPos;
+      targetPos = targetInitialPos;
+  }
 }
 
-// Call it after a tiny delay to ensure CSS transitions/fonts are ready
-window.addEventListener("load", () => {
-  measureSetWidth();
-});
+// Call it after load to ensure layout is settled
+window.addEventListener("load", measureSetWidth);
+window.addEventListener("resize", measureSetWidth);
 
-requestAnimationFrame(measureSetWidth);
-window.addEventListener("resize", () => requestAnimationFrame(measureSetWidth));
-
-// Wheel controls horizontal movement (infinite)
+// Wheel controls
 window.addEventListener("wheel", (e) => {
   e.preventDefault();
   const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-  targetPos += delta * 1.0; // scroll direction feel (flip sign if you want)
+  targetPos += delta * 1.0; 
 }, { passive: false });
 
 function animate() {
-  // smooth easing
   scrollPos += (targetPos - scrollPos) * 0.08;
 
   if (setWidth > 0) {
-    // render offset wraps, but scrollPos never “jumps”
     const wrapped = ((scrollPos % setWidth) + setWidth) % setWidth;
-
-    // place the middle copy in view:
-    // -wrapped moves left, and -setWidth shifts to the middle set
     const x = -wrapped - setWidth;
-
     track.style.transform = `translate3d(${x}px, 0, 0)`;
   }
 
@@ -136,9 +150,25 @@ function animate() {
 }
 requestAnimationFrame(animate);
 
-function randomNiceColor() {
-  const h = Math.floor(Math.random() * 360);
-  const s = 70 + Math.floor(Math.random() * 20);
-  const l = 45 + Math.floor(Math.random() * 10);
-  return `hsl(${h} ${s}% ${l}%)`;
-}
+/* ---------------------------
+   GRADUAL BLUR (Edges)
+---------------------------- */
+const viewport = document.querySelector(".reel-viewport");
+
+// Left Blur
+createGradualBlur(viewport, {
+  position: 'left',
+  strength: 2,
+  divCount: 5,
+  size: '150px', // Adjust width of the blur strip here
+  zIndex: 20
+});
+
+// Right Blur
+createGradualBlur(viewport, {
+  position: 'right',
+  strength: 2,
+  divCount: 5,
+  size: '150px',
+  zIndex: 20
+});

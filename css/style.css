@@ -122,7 +122,14 @@ body::before {
   justify-content: center;
 }
 
+.gradual-blur {
+  pointer-events: none; 
+  /* Critical for backdrop-filter to composite correctly against backgrounds */
+  isolation: isolate; 
+}
+
 .reel-viewport{
+  position: relative;
   width: 100vw;
   height: clamp(220px, 33vh, 420px);
   overflow: hidden;
