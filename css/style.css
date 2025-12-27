@@ -128,11 +128,31 @@ body::before {
   isolation: isolate; 
 }
 
-.reel-viewport{
-  position: relative;
+.reel-viewport {
   width: 100vw;
   height: clamp(220px, 33vh, 420px);
   overflow: hidden;
+  position: relative; /* Ensure it respects local stacking */
+  
+  /* --- ADD THIS SECTION --- */
+  /* Creates a transparency fade at both edges */
+  /* 150px matches the size of your Gradual Blur */
+  -webkit-mask-image: linear-gradient(
+    to right, 
+    transparent 0px, 
+    black 150px, 
+    black calc(100% - 150px), 
+    transparent 100%
+  );
+  
+  mask-image: linear-gradient(
+    to right, 
+    transparent 0px, 
+    black 150px, 
+    black calc(100% - 150px), 
+    transparent 100%
+  );
+  /* ------------------------ */
 }
 
 .reel-track{
