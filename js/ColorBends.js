@@ -3,6 +3,10 @@ import * as THREE from "./vendor/three.module.js";
 const MAX_COLORS = 8;
 
 const frag = `
+// 1. FORCE HIGH PRECISION
+// This is critical to prevent the "static/noise" glitch after 5 minutes
+precision highp float;
+
 #define MAX_COLORS ${MAX_COLORS}
 uniform vec2 uCanvas;
 uniform float uTime;
@@ -14,12 +18,10 @@ uniform int uTransparent;
 uniform float uScale;
 uniform float uFrequency;
 uniform float uWarpStrength;
-uniform vec2 uPointer; // in NDC [-1,1]
+uniform vec2 uPointer;
 uniform float uMouseInfluence;
 uniform float uParallax;
 uniform float uNoise;
-
-// new
 uniform float uVignette;
 uniform float uAberration;
 
@@ -29,9 +31,9 @@ float hash(vec2 p){
   return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
-// Returns (rgb, alpha) packed as vec4
 vec4 shade(vec2 uv) {
-  float t = uTime * uSpeed;
+  float t = uTime; 
+  
   vec2 p = uv * 2.0 - 1.0;
   p += uPointer * uParallax * 0.1;
 
@@ -40,6 +42,8 @@ vec4 shade(vec2 uv) {
 
   q /= max(uScale, 0.0001);
   q /= 0.5 + 0.2 * dot(q, q);
+  
+  // Time is wrapped in JS, so 't' is always small (0 to 6.28)
   q += 0.2 * cos(t) - 7.56;
 
   vec2 toward = (uPointer - rp);
@@ -71,6 +75,7 @@ vec4 shade(vec2 uv) {
     col = clamp(sumCol, 0.0, 1.0);
     a = uTransparent > 0 ? cover : 1.0;
   } else {
+    // Fallback grayscale
     vec2 s = q;
     for (int k = 0; k < 3; ++k) {
       s -= 0.01;
@@ -88,9 +93,11 @@ vec4 shade(vec2 uv) {
     a = uTransparent > 0 ? max(max(col.r, col.g), col.b) : 1.0;
   }
 
-  // grain/noise
+  // grain
   if (uNoise > 0.0001) {
-    float n = hash(gl_FragCoord.xy + vec2(uTime));
+    // 2. EXTRA SAFETY FOR GRAIN
+    // We wrap the time input for the hash function so it never receives a huge number
+    float n = hash(gl_FragCoord.xy + mod(uTime, 100.0));
     col += (n - 0.5) * uNoise;
     col = clamp(col, 0.0, 1.0);
   }
@@ -99,14 +106,12 @@ vec4 shade(vec2 uv) {
 }
 
 void main() {
-  // Barrel distortion (lens)
   vec2 uv = vUv;
   vec2 p = uv * 2.0 - 1.0;
   float r2 = dot(p, p);
-  float k = 0.12; // distortion strength
+  float k = 0.12; 
   vec2 uvLens = (p * (1.0 + k * r2)) * 0.5 + 0.5;
 
-  // Chromatic aberration (rainbow lens split)
   vec2 dir = normalize(p + 1e-6);
   float amt = uAberration * (0.002 + 0.010 * r2);
   vec2 offs = dir * amt;
@@ -118,15 +123,12 @@ void main() {
   vec3 col = vec3(baseR.r, baseG.g, baseB.b);
   float a = baseG.a;
 
-  // Darker, filmic-ish grade
   col *= 0.85;
-  col = pow(col, vec3(1.08)); // slightly deeper mids
+  col = pow(col, vec3(1.08)); 
 
-  // Vignette
   float vig = smoothstep(1.15, 0.2, length(p));
   col *= mix(1.0, vig, clamp(uVignette, 0.0, 1.0));
 
-  // Optional premultiplied alpha behavior
   vec3 rgb = (uTransparent > 0) ? col * a : col;
   gl_FragColor = vec4(rgb, a);
 }
@@ -198,7 +200,6 @@ export function initColorBends(container, opts = {}) {
     transparent: true,
   });
 
-  // Set colors
   const arr = (options.colors || []).filter(Boolean).slice(0, MAX_COLORS).map(hexToVec3);
   for (let i = 0; i < MAX_COLORS; i++) {
     const vec = material.uniforms.uColors.value[i];
@@ -219,7 +220,6 @@ export function initColorBends(container, opts = {}) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x000000, options.transparent ? 0 : 1);
-
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
   renderer.domElement.style.display = "block";
@@ -248,21 +248,16 @@ export function initColorBends(container, opts = {}) {
     window.addEventListener("resize", resize);
   }
 
-    function onPointerMove(e) {
+  function onPointerMove(e) {
     const x = (e.clientX / (window.innerWidth || 1)) * 2 - 1;
     const y = -((e.clientY / (window.innerHeight || 1)) * 2 - 1);
-
-    pointerTarget.set(
-        Math.max(-1, Math.min(1, x)),
-        Math.max(-1, Math.min(1, y))
-    );
-    }
+    pointerTarget.set(Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y)));
+  }
 
   window.addEventListener("pointermove", onPointerMove);
 
   let raf = 0;
-
-  // --- preset transition (linger) ---
+  
   const transition = {
     active: false,
     elapsed: 0,
@@ -273,17 +268,21 @@ export function initColorBends(container, opts = {}) {
 
   function smoothstep(x) {
     x = Math.max(0, Math.min(1, x));
-    return x < 0.5
-      ? 4 * x * x * x
-      : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
   }
 
   function setParams(p = {}) {
     const u = material.uniforms;
 
-    // snapshot current -> start
+    // --- INSTANT SPEED CHANGE ---
+    // We set speed immediately so it feels like a crisp gear shift.
+    if (typeof p.speed === "number") {
+      u.uSpeed.value = p.speed;
+    }
+
+    // --- SMOOTH VISUAL TRANSITION ---
+    // Speed is NOT included here.
     transition.start = {
-      speed: u.uSpeed.value,
       warpStrength: u.uWarpStrength.value,
       mouseInfluence: u.uMouseInfluence.value,
       parallax: u.uParallax.value,
@@ -294,9 +293,7 @@ export function initColorBends(container, opts = {}) {
       frequency: u.uFrequency.value,
     };
 
-    // build end using provided values (fallback = current)
     transition.end = {
-      speed: (typeof p.speed === "number") ? p.speed : transition.start.speed,
       warpStrength: (typeof p.warpStrength === "number") ? p.warpStrength : transition.start.warpStrength,
       mouseInfluence: (typeof p.mouseInfluence === "number") ? p.mouseInfluence : transition.start.mouseInfluence,
       parallax: (typeof p.parallax === "number") ? p.parallax : transition.start.parallax,
@@ -307,30 +304,37 @@ export function initColorBends(container, opts = {}) {
       frequency: (typeof p.frequency === "number") ? p.frequency : transition.start.frequency,
     };
 
-    // Optional: allow overriding linger duration from main.js
     if (typeof p.linger === "number") transition.dur = Math.max(0.05, p.linger);
 
     transition.elapsed = 0;
     transition.active = true;
   }
 
+  // --- MAIN LOOP ---
+  let totalTime = 0;
 
   function loop() {
+    // 1. Cap delta to prevent huge jumps after tab inactivity
     const dt = Math.min(clock.getDelta(), 0.05);
-    const elapsed = clock.elapsedTime;
 
-    material.uniforms.uTime.value = elapsed;
+    // 2. INTEGRATE TIME (Distance Traveled)
+    // We add (dt * speed) to totalTime. 
+    // This allows speed to change instantly without breaking the animation flow.
+    const currentSpeed = material.uniforms.uSpeed.value;
+    totalTime += dt * currentSpeed;
 
-    // --- apply linger transition ---
+    // 3. INFINITE LOOP FIX
+    // Modulo time by 2*PI (approx 6.28). 
+    // This keeps the numbers tiny forever, preventing the GPU precision glitch.
+    material.uniforms.uTime.value = totalTime % (Math.PI * 2);
+
+    // 4. TRANSITION VISUALS
     if (transition.active && transition.start && transition.end) {
       transition.elapsed += dt;
       const t = Math.min(1, transition.elapsed / transition.dur);
-
-      // true ease-in / ease-out
       const k = smoothstep(t);
       const u = material.uniforms;
 
-      u.uSpeed.value          = transition.start.speed          + (transition.end.speed          - transition.start.speed)          * k;
       u.uWarpStrength.value   = transition.start.warpStrength   + (transition.end.warpStrength   - transition.start.warpStrength)   * k;
       u.uMouseInfluence.value = transition.start.mouseInfluence + (transition.end.mouseInfluence - transition.start.mouseInfluence) * k;
       u.uParallax.value       = transition.start.parallax       + (transition.end.parallax       - transition.start.parallax)       * k;
@@ -340,10 +344,11 @@ export function initColorBends(container, opts = {}) {
       u.uScale.value          = transition.start.scale          + (transition.end.scale          - transition.start.scale)          * k;
       u.uFrequency.value      = transition.start.frequency      + (transition.end.frequency      - transition.start.frequency)      * k;
 
-      if (transition.t >= 1) transition.active = false;
+      if (t >= 1) transition.active = false;
     }
 
-    const deg = (options.rotation % 360) + options.autoRotate * elapsed;
+    // Auto-rotate logic
+    const deg = (options.rotation % 360) + options.autoRotate * totalTime;
     const rad = (deg * Math.PI) / 180;
     material.uniforms.uRot.value.set(Math.cos(rad), Math.sin(rad));
 
@@ -357,18 +362,17 @@ export function initColorBends(container, opts = {}) {
 
   raf = requestAnimationFrame(loop);
 
-    return {
+  return {
     setParams,
     destroy: () => {
-        cancelAnimationFrame(raf);
-        if (ro) ro.disconnect();
-        else window.removeEventListener("resize", resize);
-
-        window.removeEventListener("pointermove", onPointerMove);
-        geometry.dispose();
-        material.dispose();
-        renderer.dispose();
-        if (renderer.domElement.parentElement === container) container.removeChild(renderer.domElement);
+      cancelAnimationFrame(raf);
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", onPointerMove);
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      if (renderer.domElement.parentElement === container) container.removeChild(renderer.domElement);
     },
-    };
+  };
 }
