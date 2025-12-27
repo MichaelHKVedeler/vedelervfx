@@ -153,22 +153,25 @@ requestAnimationFrame(animate);
 /* ---------------------------
    GRADUAL BLUR (Edges)
 ---------------------------- */
-const viewport = document.querySelector(".reel-viewport");
+// We don't even strictly need the viewport variable anymore for placement
+// since we are attaching to body, but we can leave it for reference.
 
 // Left Blur
-createGradualBlur(viewport, {
+createGradualBlur(document.body, { // Target can be body now
   position: 'left',
-  strength: 2,
-  divCount: 5,
-  size: '150px', // Adjust width of the blur strip here
-  zIndex: 20
-});
-
-// Right Blur
-createGradualBlur(viewport, {
-  position: 'right',
+  fixed: true,
   strength: 2,
   divCount: 5,
   size: '150px',
-  zIndex: 20
+  zIndex: 5          // Keep below UI (Brand/Nav) but above Reel
+});
+
+// Right Blur
+createGradualBlur(document.body, {
+  position: 'right',
+  fixed: true,
+  strength: 2,
+  divCount: 5,
+  size: '150px',
+  zIndex: 5
 });

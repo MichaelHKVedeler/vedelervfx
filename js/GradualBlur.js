@@ -1,6 +1,29 @@
 /* Vanilla JS adaptation of Gradual Blur
-  Original concept by Ansh (reactbits.dev)
+   Original concept by Ansh (reactbits.dev)
 */
+
+function injectStyles() {
+  const styleId = 'gradual-blur-styles';
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = `
+    .gradual-blur {
+      pointer-events: none;
+      transform: translate3d(0, 0, 0);
+    }
+    .gradual-blur-inner > div {
+      position: absolute;
+      inset: 0;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 function getGradientDirection(position) {
   switch (position) {
@@ -13,14 +36,17 @@ function getGradientDirection(position) {
 }
 
 export function createGradualBlur(targetElement, config = {}) {
+  injectStyles(); 
+
   const defaults = {
-    position: 'bottom', // top, bottom, left, right
+    position: 'bottom',
     strength: 2,
-    size: '6rem',       // width for side blurs, height for top/bottom
+    size: '6rem',
     divCount: 5,
     exponential: false,
     opacity: 1,
-    zIndex: 5
+    zIndex: 5,
+    fixed: false // New Option
   };
 
   const opts = { ...defaults, ...config };
@@ -29,28 +55,29 @@ export function createGradualBlur(targetElement, config = {}) {
   const container = document.createElement('div');
   container.className = `gradual-blur gradual-blur-${opts.position}`;
   
-  // Base styles for the container
+  // Apply Fixed vs Absolute positioning
   Object.assign(container.style, {
-    position: 'absolute',
+    position: opts.fixed ? 'fixed' : 'absolute',
     zIndex: opts.zIndex,
-    pointerEvents: 'none', // let clicks pass through
     overflow: 'hidden',
   });
 
-  // Positioning logic
-  if (['top', 'bottom'].includes(opts.position)) {
+  // Positioning Logic
+  if (['left', 'right'].includes(opts.position)) {
+    // Left/Right: Stretch Top-to-Bottom
+    container.style.top = '0';
+    container.style.bottom = '0';
+    container.style.width = opts.size;
+    container.style[opts.position] = '0'; 
+  } else {
+    // Top/Bottom: Stretch Left-to-Right
     container.style.left = '0';
     container.style.right = '0';
     container.style.height = opts.size;
     container.style[opts.position] = '0';
-  } else {
-    container.style.top = '0';
-    container.style.bottom = '0';
-    container.style.width = opts.size;
-    container.style[opts.position] = '0';
   }
 
-  // Create the blur layers
+  // Create the inner wrapper
   const inner = document.createElement('div');
   inner.className = 'gradual-blur-inner';
   Object.assign(inner.style, {
@@ -66,10 +93,9 @@ export function createGradualBlur(targetElement, config = {}) {
   for (let i = 1; i <= opts.divCount; i++) {
     const layer = document.createElement('div');
     
-    // Logic from the React component
+    // Math Logic
     let progress = i / opts.divCount;
-    // Simple bezier curve approximation: p * p * (3 - 2 * p)
-    progress = progress * progress * (3 - 2 * progress);
+    progress = progress * progress * (3 - 2 * progress); // Ease
 
     let blurValue;
     if (opts.exponential) {
@@ -78,7 +104,6 @@ export function createGradualBlur(targetElement, config = {}) {
       blurValue = 0.0625 * (progress * opts.divCount + 1) * opts.strength;
     }
 
-    // Calculate mask stops
     const p1 = Math.round((increment * i - increment) * 10) / 10;
     const p2 = Math.round(increment * i * 10) / 10;
     const p3 = Math.round((increment * i + increment) * 10) / 10;
@@ -90,24 +115,28 @@ export function createGradualBlur(targetElement, config = {}) {
 
     const mask = `linear-gradient(${direction}, ${gradient})`;
 
-    Object.assign(layer.style, {
-      position: 'absolute',
-      inset: '0',
-      maskImage: mask,
-      webkitMaskImage: mask,
-      backdropFilter: `blur(${blurValue.toFixed(3)}rem)`,
-      webkitBackdropFilter: `blur(${blurValue.toFixed(3)}rem)`,
-    });
+    layer.style.maskImage = mask;
+    layer.style.webkitMaskImage = mask;
+    layer.style.background = 'rgba(255,255,255,0.001)'; 
+    layer.style.backdropFilter = `blur(${blurValue.toFixed(3)}rem)`;
+    layer.style.webkitBackdropFilter = `blur(${blurValue.toFixed(3)}rem)`;
 
     inner.appendChild(layer);
   }
 
   container.appendChild(inner);
-  targetElement.appendChild(container); // Append to the target
-  
-  // Make sure parent is relative if we are absolute positioning
-  const style = window.getComputedStyle(targetElement);
-  if (style.position === 'static') {
-    targetElement.style.position = 'relative';
+
+  // CRITICAL CHANGE:
+  // If fixed, we append to body to ensure it sits relative to the window,
+  // not trapped inside the relative 'viewport' container.
+  if (opts.fixed) {
+    document.body.appendChild(container);
+  } else {
+    targetElement.appendChild(container);
+    // Ensure parent handles absolute children
+    const style = window.getComputedStyle(targetElement);
+    if (style.position === 'static') {
+      targetElement.style.position = 'relative';
+    }
   }
 }
