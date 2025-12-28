@@ -360,3 +360,28 @@ body::before {
   max-width: 700px;
   margin: 0;
 }
+
+.modal-content.no-video {
+  text-align: center;
+  align-items: center; /* Center flex children vertically */
+  max-width: 700px;    /* Make the text box narrower so it looks intentional */
+}
+
+/* Ensure the paragraph is centered too */
+.modal-content.no-video .modal-info p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 2. Style for Links in description */
+.modal-info a {
+  color: #fff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.modal-info a:hover {
+  border-bottom-color: rgba(255,255,255,1);
+  color: #8a5cff; /* Matches your site accent */
+}

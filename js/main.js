@@ -1,5 +1,4 @@
 import { initColorBends } from "./ColorBends.js";
-
 import { createGradualBlur } from "./GradualBlur.js";
 
 const el = document.getElementById("color-bends");
@@ -52,78 +51,77 @@ setView("home");
 
 const track = document.getElementById("reel-track");
 
-// Manual Configuration with Descriptions and YouTube IDs
-// (Using the placeholder ID 'dQw4w9WgXcQ' for now)
+// Manual Configuration
 const RAW_DATA = [
   { 
     thumb: "01_karpeworld_thumbnail.jpg", 
     vid: "karpeworld_preview.webm", 
     title: "Karpe World",
-    desc: "An immersive environment design exploring surreal landscapes and lighting.",
-    yt: "dQw4w9WgXcQ" 
+    desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
+    yt: "" // NO VIDEO
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
     vid: "flax_preview.webm",       
     title: "Flax",
-    desc: "A commercial project focusing on product visualization and clean motion design.",
-    yt: "dQw4w9WgXcQ"
+    desc: "More info coming soon...",
+    yt: "" // NO VIDEO
   },
   { 
     thumb: "03_bossfight_thumbnail.jpg",  
     vid: "bossfight_preview.webm",  
     title: "Bossfight",
-    desc: "Dynamic combat animation showcase featuring high-intensity visual effects.",
-    yt: "dQw4w9WgXcQ"
+    desc: "My entry for the Boss Fight competition from CreateWithClint. Sound by Brage J Pedersen.",
+    yt: "4BDR6Tx-zl8"
   },
   { 
     thumb: "04_coast_thumbnail.jpg",      
     vid: "coast_preview.webm",      
     title: "Coast",
-    desc: "Atmospheric environment study focusing on water simulation and fog.",
-    yt: "dQw4w9WgXcQ"
+    desc: "More info coming soon...",
+    yt: "" // NO VIDEO
   },
   { 
     thumb: "05_CCTV_thumbnail.jpg",       
     vid: "cctv_preview.webm",       
     title: "CCTV",
-    desc: "A gritty, found-footage style animation exploring surveillance themes.",
-    yt: "dQw4w9WgXcQ"
+    desc: "A hobby project researching the use of ray portal shader in blender.",
+    yt: "8qdRl0o8QBs"
   },
   { 
     thumb: "06_lego_thumbnail.jpg",       
     vid: "lego_preview.webm",       
     title: "Lego",
-    desc: "Photorealistic rendering challenge using digital Lego bricks.",
-    yt: "dQw4w9WgXcQ"
+    desc: "A fun exercise in trying to make procedural lego tools for blender.",
+    yt: "544oUGIO8uY"
   },
   { 
     thumb: "07_robotcitadel_thumbnail.jpg", 
     vid: "robotcitadel_preview.webm", 
     title: "Robot Citadel",
-    desc: "Large scale sci-fi environment with complex hard-surface modeling.",
-    yt: "dQw4w9WgXcQ"
+    desc: "Hard-surface modelling, large scale environment. Sound by Brage J Pedersen.",
+    yt: "ZH79UuD8e6o"
   },
   { 
     thumb: "08_eternalascend_thumbnail.jpg", 
     vid: "eternalascend_preview.webm", 
     title: "Eternal Ascend",
-    desc: "Abstract motion graphics piece exploring infinite loops and geometry.",
-    yt: "dQw4w9WgXcQ"
+    desc: "My entry for the Eternal Ascend competition from CreateWithClint.",
+    yt: "S4hT78YlygY"
   },
   { 
     thumb: "09_hospital_thumbnail.jpg",   
     vid: "hospital_preview.webm",   
-    title: "Hospital",
-    desc: "Horror-themed environment lighting study.",
-    yt: "dQw4w9WgXcQ"
+    title: "Tape_04",
+    desc: "Small horror-themed hobby project.",
+    yt: "f_4QprZOPUI"
   },
   { 
     thumb: "10_endlessengines_thumbnail.jpg", 
     vid: "endlessengines_preview.webm", 
     title: "Endless Engines",
-    desc: "Entry for the community challenge, focusing on vehicle animation.",
-    yt: "dQw4w9WgXcQ"
+    desc: "My entry for the Endless Engines community challenge, selected among the Top 100 submissions.",
+    yt: "83_wCwVw_aU"
   }
 ];
 
@@ -138,19 +136,32 @@ const PROJECTS = RAW_DATA.map((p, i) => ({
 
 // --- MODAL LOGIC ---
 const modal = document.getElementById("modal-overlay");
+const modalContent = document.querySelector(".modal-content"); // Select wrapper for styling
 const modalTitle = document.getElementById("modal-title");
 const modalDesc = document.getElementById("modal-desc");
 const modalIframe = document.getElementById("modal-iframe");
+const modalVideoWrapper = document.querySelector(".modal-video-wrapper"); // Wrapper to hide/show
 const modalCloseBtn = document.getElementById("modal-close");
 const modalBg = document.getElementById("modal-bg");
 
 function openModal(project) {
   modalTitle.innerText = project.title;
-  modalDesc.innerText = project.desc;
   
-  // Set YouTube Source with Autoplay
-  // rel=0 prevents showing other channels' videos at the end
-  modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1`;
+  // 1. ENABLE HTML IN DESCRIPTION (For Links)
+  modalDesc.innerHTML = project.desc;
+  
+  // 2. CHECK IF VIDEO EXISTS
+  if (project.yt && project.yt !== "") {
+    // HAS VIDEO
+    modalContent.classList.remove("no-video");
+    modalVideoWrapper.style.display = "block";
+    modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1`;
+  } else {
+    // NO VIDEO
+    modalContent.classList.add("no-video");
+    modalVideoWrapper.style.display = "none";
+    modalIframe.src = "";
+  }
   
   modal.classList.add("is-active");
 }
@@ -160,6 +171,7 @@ function closeModal() {
   // Clear source to stop video audio
   setTimeout(() => {
     modalIframe.src = ""; 
+    modalContent.classList.remove("no-video"); // Reset state
   }, 300);
 }
 
