@@ -385,3 +385,49 @@ body::before {
   border-bottom-color: rgba(255,255,255,1);
   color: #8a5cff; /* Matches your site accent */
 }
+
+/* --- MOBILE / RESPONSIVE ADJUSTMENTS --- */
+@media (max-width: 768px) {
+  
+  /* 5. Hide Brand on Mobile */
+  .brand-float {
+    display: none;
+  }
+
+  /* 6. Center Nav Buttons */
+  .nav-float {
+    left: 0;
+    right: 0;
+    justify-content: center;
+    width: 100%;
+    /* Adjust top padding if needed */
+  }
+
+  /* 4. Reel Scaling for Mobile */
+  .reel-viewport {
+    /* Let the height grow based on the item aspect ratio */
+    height: auto; 
+    min-height: 250px; /* Safety min-height */
+    /* Remove the mask on mobile to improve performance and visibility */
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .reel-item {
+    /* Make the item width based on screen width */
+    width: 80vw; 
+    height: auto; /* Allow height to scale automatically */
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0; /* Prevent squishing */
+  }
+  
+  .reel-track {
+    /* Adjust gap for mobile */
+    gap: 16px;
+  }
+  
+  /* 3. Hide Blur via CSS (Fallback, though we will do this in JS too) */
+  .gradual-blur {
+    display: none !important;
+  }
+}
