@@ -52,67 +52,124 @@ setView("home");
 
 const track = document.getElementById("reel-track");
 
-// Manual Configuration: Image file, Video file, and Display Title
+// Manual Configuration with Descriptions and YouTube IDs
+// (Using the placeholder ID 'dQw4w9WgXcQ' for now)
 const RAW_DATA = [
   { 
     thumb: "01_karpeworld_thumbnail.jpg", 
     vid: "karpeworld_preview.webm", 
-    title: "Karpe World" 
+    title: "Karpe World",
+    desc: "An immersive environment design exploring surreal landscapes and lighting.",
+    yt: "dQw4w9WgXcQ" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
     vid: "flax_preview.webm",       
-    title: "Flax" 
+    title: "Flax",
+    desc: "A commercial project focusing on product visualization and clean motion design.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "03_bossfight_thumbnail.jpg",  
     vid: "bossfight_preview.webm",  
-    title: "Bossfight" 
+    title: "Bossfight",
+    desc: "Dynamic combat animation showcase featuring high-intensity visual effects.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "04_coast_thumbnail.jpg",      
     vid: "coast_preview.webm",      
-    title: "Coast" 
+    title: "Coast",
+    desc: "Atmospheric environment study focusing on water simulation and fog.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "05_CCTV_thumbnail.jpg",       
     vid: "cctv_preview.webm",       
-    title: "CCTV" 
+    title: "CCTV",
+    desc: "A gritty, found-footage style animation exploring surveillance themes.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "06_lego_thumbnail.jpg",       
     vid: "lego_preview.webm",       
-    title: "Lego" 
+    title: "Lego",
+    desc: "Photorealistic rendering challenge using digital Lego bricks.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "07_robotcitadel_thumbnail.jpg", 
     vid: "robotcitadel_preview.webm", 
-    title: "Robot Citadel" 
+    title: "Robot Citadel",
+    desc: "Large scale sci-fi environment with complex hard-surface modeling.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "08_eternalascend_thumbnail.jpg", 
     vid: "eternalascend_preview.webm", 
-    title: "Eternal Ascend" 
+    title: "Eternal Ascend",
+    desc: "Abstract motion graphics piece exploring infinite loops and geometry.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "09_hospital_thumbnail.jpg",   
     vid: "hospital_preview.webm",   
-    title: "Hospital" 
+    title: "Hospital",
+    desc: "Horror-themed environment lighting study.",
+    yt: "dQw4w9WgXcQ"
   },
   { 
     thumb: "10_endlessengines_thumbnail.jpg", 
     vid: "endlessengines_preview.webm", 
-    title: "Endless Engines" 
+    title: "Endless Engines",
+    desc: "Entry for the community challenge, focusing on vehicle animation.",
+    yt: "dQw4w9WgXcQ"
   }
 ];
 
-// Map raw data to the internal project structure
 const PROJECTS = RAW_DATA.map((p, i) => ({
   id: i,
   img: `assets/portfolio/${p.thumb}`,
   vid: `assets/portfolio/${p.vid}`,
-  title: p.title
+  title: p.title,
+  desc: p.desc,
+  yt: p.yt
 }));
+
+// --- MODAL LOGIC ---
+const modal = document.getElementById("modal-overlay");
+const modalTitle = document.getElementById("modal-title");
+const modalDesc = document.getElementById("modal-desc");
+const modalIframe = document.getElementById("modal-iframe");
+const modalCloseBtn = document.getElementById("modal-close");
+const modalBg = document.getElementById("modal-bg");
+
+function openModal(project) {
+  modalTitle.innerText = project.title;
+  modalDesc.innerText = project.desc;
+  
+  // Set YouTube Source with Autoplay
+  // rel=0 prevents showing other channels' videos at the end
+  modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1`;
+  
+  modal.classList.add("is-active");
+}
+
+function closeModal() {
+  modal.classList.remove("is-active");
+  // Clear source to stop video audio
+  setTimeout(() => {
+    modalIframe.src = ""; 
+  }, 300);
+}
+
+// Bind close events
+modalCloseBtn.addEventListener("click", closeModal);
+modalBg.addEventListener("click", closeModal);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.classList.contains("is-active")) closeModal();
+});
+
 
 function makeItem(p) {
   const d = document.createElement("div");
@@ -130,15 +187,18 @@ function makeItem(p) {
   title.innerText = p.title;
   d.appendChild(title);
   
-  // Hover Logic (Video & Title)
+  // Click to Open Modal
+  d.addEventListener("click", () => {
+    openModal(p);
+  });
+  
+  // Hover Logic
   let video = null;
 
   d.addEventListener("mouseenter", () => {
-    // Show Title
     title.style.opacity = "1";
     title.style.transform = "translateY(0)";
 
-    // Lazy Load Video
     if (!video) {
       video = document.createElement("video");
       video.src = p.vid;
@@ -155,7 +215,6 @@ function makeItem(p) {
       video.style.opacity = "0";
       video.style.transition = "opacity 0.4s ease";
       
-      // Insert video BEHIND the title so text stays on top
       d.insertBefore(video, title);
       
       video.play()
@@ -168,11 +227,9 @@ function makeItem(p) {
   });
 
   d.addEventListener("mouseleave", () => {
-    // Hide Title
     title.style.opacity = "0";
     title.style.transform = "translateY(10px)";
 
-    // Hide Video
     if (video) {
       video.style.opacity = "0";
       setTimeout(() => {
