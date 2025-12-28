@@ -172,6 +172,30 @@ body::before {
   flex-shrink: 0;
 }
 
+.reel-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 24px 24px 24px; /* Big top padding for the gradient */
+  
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  
+  /* Start hidden */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  
+  /* Gradient fade for readability */
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  pointer-events: none; /* Let clicks pass through to the item */
+  z-index: 10;
+}
+
 /* About / Contact center */
 .pageblock{
   width: min(820px, 92vw);

@@ -52,41 +52,93 @@ setView("home");
 
 const track = document.getElementById("reel-track");
 
-// Explicit mapping of Thumbnail -> Preview Video
-const PROJECTS = [
-  { img: "01_karpeworld_thumbnail.jpg", vid: "karpeworld_preview.webm" },
-  { img: "02_flax_thumbnail.jpg",       vid: "flax_preview.webm" },
-  { img: "03_bossfight_thumbnail.jpg",  vid: "bossfight_preview.webm" },
-  { img: "04_coast_thumbnail.jpg",      vid: "coast_preview.webm" },
-  { img: "05_CCTV_thumbnail.jpg",       vid: "cctv_preview.webm" },
-  { img: "06_lego_thumbnail.jpg",       vid: "lego_preview.webm" },
-  { img: "07_robotcitadel_thumbnail.jpg", vid: "robotcitadel_preview.webm" },
-  { img: "08_eternalascend_thumbnail.jpg", vid: "eternalascend_preview.webm" },
-  { img: "09_hospital_thumbnail.jpg",   vid: "hospital_preview.webm" },
-  { img: "10_endlessengines_thumbnail.jpg", vid: "endlessengines_preview.webm" }
-].map((p, i) => ({
+// Manual Configuration: Image file, Video file, and Display Title
+const RAW_DATA = [
+  { 
+    thumb: "01_karpeworld_thumbnail.jpg", 
+    vid: "karpeworld_preview.webm", 
+    title: "Karpe World" 
+  },
+  { 
+    thumb: "02_flax_thumbnail.jpg",       
+    vid: "flax_preview.webm",       
+    title: "Flax" 
+  },
+  { 
+    thumb: "03_bossfight_thumbnail.jpg",  
+    vid: "bossfight_preview.webm",  
+    title: "Bossfight" 
+  },
+  { 
+    thumb: "04_coast_thumbnail.jpg",      
+    vid: "coast_preview.webm",      
+    title: "Coast" 
+  },
+  { 
+    thumb: "05_CCTV_thumbnail.jpg",       
+    vid: "cctv_preview.webm",       
+    title: "CCTV" 
+  },
+  { 
+    thumb: "06_lego_thumbnail.jpg",       
+    vid: "lego_preview.webm",       
+    title: "Lego" 
+  },
+  { 
+    thumb: "07_robotcitadel_thumbnail.jpg", 
+    vid: "robotcitadel_preview.webm", 
+    title: "Robot Citadel" 
+  },
+  { 
+    thumb: "08_eternalascend_thumbnail.jpg", 
+    vid: "eternalascend_preview.webm", 
+    title: "Eternal Ascend" 
+  },
+  { 
+    thumb: "09_hospital_thumbnail.jpg",   
+    vid: "hospital_preview.webm",   
+    title: "Hospital" 
+  },
+  { 
+    thumb: "10_endlessengines_thumbnail.jpg", 
+    vid: "endlessengines_preview.webm", 
+    title: "Endless Engines" 
+  }
+];
+
+// Map raw data to the internal project structure
+const PROJECTS = RAW_DATA.map((p, i) => ({
   id: i,
-  img: `assets/portfolio/${p.img}`,
+  img: `assets/portfolio/${p.thumb}`,
   vid: `assets/portfolio/${p.vid}`,
+  title: p.title
 }));
 
 function makeItem(p) {
   const d = document.createElement("div");
   d.className = "reel-item";
   
-  // Background Image (Static)
+  // Background Image
   d.style.backgroundImage = `url("${p.img}")`;
   d.style.backgroundSize = "cover";
   d.style.backgroundPosition = "center";
   d.style.backgroundColor = "#111";
+
+  // Text Overlay
+  const title = document.createElement("div");
+  title.className = "reel-title";
+  title.innerText = p.title;
+  d.appendChild(title);
   
-  // NOTE: We removed 'd.title = ...' so no popup text appears
-  
-  // HOVER LOGIC: Create video only when needed to save bandwidth
+  // Hover Logic (Video & Title)
   let video = null;
 
   d.addEventListener("mouseenter", () => {
-    // If video doesn't exist, create it
+    // Show Title
+    title.style.opacity = "1";
+    title.style.transform = "translateY(0)";
+
+    // Lazy Load Video
     if (!video) {
       video = document.createElement("video");
       video.src = p.vid;
@@ -95,39 +147,41 @@ function makeItem(p) {
       video.playsInline = true;
       video.className = "reel-video";
       
-      // Ensure it covers the item
       video.style.position = "absolute";
       video.style.inset = "0";
       video.style.width = "100%";
       video.style.height = "100%";
       video.style.objectFit = "cover";
-      video.style.opacity = "0"; // Start invisible
+      video.style.opacity = "0";
       video.style.transition = "opacity 0.4s ease";
       
-      d.appendChild(video);
+      // Insert video BEHIND the title so text stays on top
+      d.insertBefore(video, title);
       
-      // Force play then fade in
       video.play()
         .then(() => { video.style.opacity = "1"; })
         .catch(e => console.log("Autoplay blocked", e));
     } else {
-      // If cached, just play and fade in
       video.play();
       video.style.opacity = "1";
     }
   });
 
   d.addEventListener("mouseleave", () => {
+    // Hide Title
+    title.style.opacity = "0";
+    title.style.transform = "translateY(10px)";
+
+    // Hide Video
     if (video) {
       video.style.opacity = "0";
       setTimeout(() => {
         if (video) {
           video.pause();
-          // Optional: Remove entirely to save RAM if you have many large videos
           video.remove(); 
           video = null;
         }
-      }, 400); // Wait for fade out
+      }, 400);
     }
   });
 
