@@ -163,10 +163,13 @@ body::before {
   will-change: transform;
 }
 
-.reel-item{
+.reel-item {
   height: 100%;
   aspect-ratio: 16 / 9;
   border-radius: 28px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* About / Contact center */

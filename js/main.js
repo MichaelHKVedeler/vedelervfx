@@ -52,41 +52,88 @@ setView("home");
 
 const track = document.getElementById("reel-track");
 
-// Specific filenames from your assets/portfolio folder
-const thumbnails = [
-  "01_karpeworld_thumbnail.jpg",
-  "02_flax_thumbnail.jpg",
-  "03_bossfight_thumbnail.jpg",
-  "04_coast_thumbnail.jpg",
-  "05_CCTV_thumbnail.jpg",
-  "06_lego_thumbnail.jpg",
-  "07_robotcitadel_thumbnail.jpg",
-  "08_eternalascend_thumbnail.jpg",
-  "09_hospital_thumbnail.jpg",
-  "10_endlessengines_thumbnail.jpg"
-];
-
-const PROJECTS = thumbnails.map((filename, i) => ({
+// Explicit mapping of Thumbnail -> Preview Video
+const PROJECTS = [
+  { img: "01_karpeworld_thumbnail.jpg", vid: "karpeworld_preview.webm" },
+  { img: "02_flax_thumbnail.jpg",       vid: "flax_preview.webm" },
+  { img: "03_bossfight_thumbnail.jpg",  vid: "bossfight_preview.webm" },
+  { img: "04_coast_thumbnail.jpg",      vid: "coast_preview.webm" },
+  { img: "05_CCTV_thumbnail.jpg",       vid: "cctv_preview.webm" },
+  { img: "06_lego_thumbnail.jpg",       vid: "lego_preview.webm" },
+  { img: "07_robotcitadel_thumbnail.jpg", vid: "robotcitadel_preview.webm" },
+  { img: "08_eternalascend_thumbnail.jpg", vid: "eternalascend_preview.webm" },
+  { img: "09_hospital_thumbnail.jpg",   vid: "hospital_preview.webm" },
+  { img: "10_endlessengines_thumbnail.jpg", vid: "endlessengines_preview.webm" }
+].map((p, i) => ({
   id: i,
-  img: `assets/portfolio/${filename}`, // Path relative to index.html
-  title: filename.replace(/_/g, " ").replace(".jpg", "") // Clean up name for hover title
+  img: `assets/portfolio/${p.img}`,
+  vid: `assets/portfolio/${p.vid}`,
 }));
 
 function makeItem(p) {
   const d = document.createElement("div");
   d.className = "reel-item";
   
-  // Apply image as background
+  // Background Image (Static)
   d.style.backgroundImage = `url("${p.img}")`;
   d.style.backgroundSize = "cover";
   d.style.backgroundPosition = "center";
-  d.style.backgroundColor = "#111"; // Fallback color while loading
+  d.style.backgroundColor = "#111";
   
-  d.title = p.title;
+  // NOTE: We removed 'd.title = ...' so no popup text appears
+  
+  // HOVER LOGIC: Create video only when needed to save bandwidth
+  let video = null;
+
+  d.addEventListener("mouseenter", () => {
+    // If video doesn't exist, create it
+    if (!video) {
+      video = document.createElement("video");
+      video.src = p.vid;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.className = "reel-video";
+      
+      // Ensure it covers the item
+      video.style.position = "absolute";
+      video.style.inset = "0";
+      video.style.width = "100%";
+      video.style.height = "100%";
+      video.style.objectFit = "cover";
+      video.style.opacity = "0"; // Start invisible
+      video.style.transition = "opacity 0.4s ease";
+      
+      d.appendChild(video);
+      
+      // Force play then fade in
+      video.play()
+        .then(() => { video.style.opacity = "1"; })
+        .catch(e => console.log("Autoplay blocked", e));
+    } else {
+      // If cached, just play and fade in
+      video.play();
+      video.style.opacity = "1";
+    }
+  });
+
+  d.addEventListener("mouseleave", () => {
+    if (video) {
+      video.style.opacity = "0";
+      setTimeout(() => {
+        if (video) {
+          video.pause();
+          // Optional: Remove entirely to save RAM if you have many large videos
+          video.remove(); 
+          video = null;
+        }
+      }, 400); // Wait for fade out
+    }
+  });
+
   return d;
 }
 
-// Build 3 copies so we can always render the “middle” seamlessly
 function buildReel() {
   track.innerHTML = "";
   for (let copy = 0; copy < 3; copy++) {
@@ -105,10 +152,7 @@ function measureSetWidth() {
   
   if (!viewport || !items.length) return;
 
-  // 1. Measure the width of one full set of projects
   const firstItemOfSecondSet = items[PROJECTS.length];
-  
-  // Safety check in case images load slowly or DOM isn't ready
   if (!firstItemOfSecondSet) return;
 
   setWidth = firstItemOfSecondSet.offsetLeft; 
@@ -116,21 +160,17 @@ function measureSetWidth() {
   const viewportCenter = viewport.clientWidth * 0.5;
   const itemWidth = items[0].offsetWidth;
   
-  // 2. Center the FIRST item of the SECOND set
   const targetInitialPos = firstItemOfSecondSet.offsetLeft - (viewportCenter - itemWidth / 2);
   
-  // Only set scale positions if this is the first measurement
   if (scrollPos === 0) {
       scrollPos = targetInitialPos;
       targetPos = targetInitialPos;
   }
 }
 
-// Call it after load to ensure layout is settled
 window.addEventListener("load", measureSetWidth);
 window.addEventListener("resize", measureSetWidth);
 
-// Wheel controls
 window.addEventListener("wheel", (e) => {
   e.preventDefault();
   const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
