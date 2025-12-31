@@ -134,7 +134,11 @@ function openModal(project) {
   if (project.yt && project.yt !== "") {
     modalContent.classList.remove("no-video");
     modalVideoWrapper.style.display = "block";
-    modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1`;
+    
+    // CHANGED: Added 'controls=0', 'loop=1', and 'playlist={ID}'
+    // Note: YouTube requires the playlist param to match the video ID for single-video looping.
+    modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1&controls=0&loop=1&playlist=${project.yt}`;
+    
   } else {
     modalContent.classList.add("no-video");
     modalVideoWrapper.style.display = "none";

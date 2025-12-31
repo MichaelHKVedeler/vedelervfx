@@ -127,6 +127,11 @@ body {
   pointer-events: auto;
 }
 
+.page-title {
+  font-family: 'DegradMono', sans-serif;
+  font-weight: 300;
+}
+
 /* --- Film reel --- */
 .reel{
   width: 100vw;
@@ -156,7 +161,7 @@ body {
 .reel-item {
   height: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 0; /* REMOVED ROUNDING */
+  border-radius: 0; /* Sharp corners */
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
@@ -182,11 +187,6 @@ body {
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.page-title {
-  font-family: 'DegradMono', sans-serif;
-  font-weight: 300;
 }
 
 .reel-title {
@@ -297,7 +297,6 @@ body {
   position: absolute;
   inset: 0;
   background: rgba(240, 241, 243, 0.95); 
-  /* Modal background blur preserved */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -345,7 +344,8 @@ body {
   padding-bottom: 56.25%;
   height: 0;
   background: #000;
-  border-radius: 12px;
+  /* CHANGED: Sharp corners */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
 }
