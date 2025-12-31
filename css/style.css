@@ -378,16 +378,20 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  
+  /* Visuals adjusted to match reference image */
   background: #F0F1F3; 
-  color: #000;
-  padding: 12px 24px;
+  color: #010101;
+  padding: 20px 40px; /* Increased padding for the larger block look */
+  min-width: 300px;   /* Ensures a wide rectangular shape */
+  text-align: left;
   
   /* Typography */
   font-family: 'DegradMono', sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.05em;
+  font-size: 20px;       /* Increased text size */
+  letter-spacing: 0.08em; /* Wider character spacing */
   
-  /* Interaction */
+  /* Interaction logic (unchanged) */
   pointer-events: none; /* Let clicks pass through to wrapper */
   z-index: 10;
   opacity: 1;
