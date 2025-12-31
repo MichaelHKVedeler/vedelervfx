@@ -1,3 +1,117 @@
+/* ---------------------------
+   YOUTUBE API SETUP
+---------------------------- */
+// We need to load the API asynchronously
+let player = null;
+let isPlayerReady = false;
+let progressInterval = null;
+
+// 1. Inject API Script
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+// 2. Define global callback
+window.onYouTubeIframeAPIReady = function() {
+  // Wait for calls
+};
+
+function initPlayer(videoId) {
+  if (player) {
+    player.loadVideoById(videoId);
+    return;
+  }
+
+  player = new YT.Player('player-placeholder', {
+    height: '100%',
+    width: '100%',
+    videoId: videoId,
+    playerVars: {
+      'autoplay': 1,
+      'controls': 0, 
+      'disablekb': 1, // Disable keyboard controls
+      'fs': 0,        // Disable fullscreen button
+      'rel': 0,
+      'modestbranding': 1,
+      'loop': 1,       // Try native loop
+      'playlist': videoId 
+    },
+    events: {
+      'onReady': onPlayerReady,
+      'onStateChange': onPlayerStateChange
+    }
+  });
+}
+
+function onPlayerReady(event) {
+  isPlayerReady = true;
+  event.target.playVideo();
+  startProgressLoop();
+}
+
+function onPlayerStateChange(event) {
+  if (event.data === YT.PlayerState.PLAYING) {
+    startProgressLoop();
+  } 
+  // CHANGED: Force loop if native loop fails
+  else if (event.data === YT.PlayerState.ENDED) {
+    player.playVideo(); 
+  }
+  else {
+    stopProgressLoop();
+  }
+}
+
+// 3. Progress Bar Logic
+const progressFill = document.getElementById("progress-fill");
+const progressContainer = document.getElementById("progress-container");
+
+function startProgressLoop() {
+  stopProgressLoop();
+  progressInterval = requestAnimationFrame(updateProgress);
+}
+
+function stopProgressLoop() {
+  if (progressInterval) cancelAnimationFrame(progressInterval);
+}
+
+function updateProgress() {
+  if (!player || !isPlayerReady) return;
+  
+  if (typeof player.getCurrentTime !== 'function' || typeof player.getDuration !== 'function') return;
+
+  const current = player.getCurrentTime();
+  const duration = player.getDuration();
+
+  if (duration > 0) {
+    const percent = (current / duration) * 100;
+    progressFill.style.width = `${percent}%`;
+  }
+  
+  progressInterval = requestAnimationFrame(updateProgress);
+}
+
+// 4. Scrubbing Logic
+progressContainer.addEventListener("click", (e) => {
+  if (!player || !isPlayerReady) return;
+  
+  const rect = progressContainer.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const width = rect.width;
+  const clickPercent = x / width; 
+  
+  const duration = player.getDuration();
+  if (duration > 0) {
+    const seekTime = duration * clickPercent;
+    player.seekTo(seekTime, true);
+  }
+});
+
+/* ---------------------------
+   APP LOGIC
+---------------------------- */
+
 function setView(view) {
   document.querySelectorAll(".panel").forEach(p => {
     p.classList.toggle("is-active", p.dataset.panel === view);
@@ -31,7 +145,7 @@ const RAW_DATA = [
     title: "KARPE WORLD",
     work: "Assets, Key, Camera track",
     desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
-    yt: "" 
+    yt: "dQw4w9WgXcQ" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
@@ -122,7 +236,6 @@ const modal = document.getElementById("modal-overlay");
 const modalContent = document.querySelector(".modal-content"); 
 const modalTitle = document.getElementById("modal-title");
 const modalDesc = document.getElementById("modal-desc");
-const modalIframe = document.getElementById("modal-iframe");
 const modalVideoWrapper = document.querySelector(".modal-video-wrapper"); 
 const modalCloseBtn = document.getElementById("modal-close");
 const modalBg = document.getElementById("modal-bg");
@@ -134,15 +247,16 @@ function openModal(project) {
   if (project.yt && project.yt !== "") {
     modalContent.classList.remove("no-video");
     modalVideoWrapper.style.display = "block";
+    progressContainer.style.display = "block"; 
     
-    // CHANGED: Added 'controls=0', 'loop=1', and 'playlist={ID}'
-    // Note: YouTube requires the playlist param to match the video ID for single-video looping.
-    modalIframe.src = `https://www.youtube.com/embed/${project.yt}?autoplay=1&rel=0&modestbranding=1&controls=0&loop=1&playlist=${project.yt}`;
+    initPlayer(project.yt);
     
   } else {
     modalContent.classList.add("no-video");
     modalVideoWrapper.style.display = "none";
-    modalIframe.src = "";
+    progressContainer.style.display = "none"; 
+    
+    if (player) player.stopVideo();
   }
   
   modal.classList.add("is-active");
@@ -150,8 +264,12 @@ function openModal(project) {
 
 function closeModal() {
   modal.classList.remove("is-active");
+  stopProgressLoop();
+  
   setTimeout(() => {
-    modalIframe.src = ""; 
+    if (player) {
+      player.stopVideo();
+    }
     modalContent.classList.remove("no-video"); 
   }, 300);
 }

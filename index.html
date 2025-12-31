@@ -29,35 +29,35 @@
         </div>
       </section>
 
-    <section class="panel" data-panel="about">
-    <div class="pageblock">
-        <h2 class="page-title">About</h2>
-        <p>
-        I’m a 3D generalist focused on VFX, animation, and real-time 3D — with a strong love for
-        building immersive, atmospheric worlds. I care about mood, light, scale, and the subtle
-        details that make a scene feel alive.
-        </p>
-        <p>
-        Professionally, I’ve also spent years developing real-time products and interactive 3D
-        experiences — finding practical ways to deliver high-quality visuals in responsive systems.
-        </p>
-    </div>
-    </section>
+      <section class="panel" data-panel="about">
+        <div class="pageblock">
+          <h2 class="page-title">About</h2>
+          <p>
+          I’m a 3D generalist focused on VFX, animation, and real-time 3D — with a strong love for
+          building immersive, atmospheric worlds. I care about mood, light, scale, and the subtle
+          details that make a scene feel alive.
+          </p>
+          <p>
+          Professionally, I’ve also spent years developing real-time products and interactive 3D
+          experiences — finding practical ways to deliver high-quality visuals in responsive systems.
+          </p>
+        </div>
+      </section>
 
-    <section class="panel" data-panel="contact">
-    <div class="pageblock">
-        <h2 class="page-title">Contact</h2>
-        <p>
-        If you want to collaborate or talk about VFX / animation / real-time 3D, reach out:
-        </p>
-        <p class="contactline">
-        <span>Email:</span> <a href="mailto:michaelvedeler@gmail.com">michaelvedeler@gmail.com</a>
-        </p>
-        <p class="contactline">
-        <span>GitHub:</span> <a href="https://github.com/MichaelHKVedeler" target="_blank" rel="noreferrer">MichaelHKVedeler</a>
-        </p>
-    </div>
-    </section>
+      <section class="panel" data-panel="contact">
+        <div class="pageblock">
+          <h2 class="page-title">Contact</h2>
+          <p>
+          If you want to collaborate or talk about VFX / animation / real-time 3D, reach out:
+          </p>
+          <p class="contactline">
+          <span>Email:</span> <a href="mailto:michaelvedeler@gmail.com">michaelvedeler@gmail.com</a>
+          </p>
+          <p class="contactline">
+          <span>GitHub:</span> <a href="https://github.com/MichaelHKVedeler" target="_blank" rel="noreferrer">MichaelHKVedeler</a>
+          </p>
+        </div>
+      </section>
     </main>
 
     <div class="copyright">
@@ -70,14 +70,18 @@
     </div>
   </div>
 
-<div id="modal-overlay" class="modal-overlay">
+  <div id="modal-overlay" class="modal-overlay">
     <div class="modal-background" id="modal-bg"></div>
     
     <div class="modal-content">
       <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
       
       <div class="modal-video-wrapper">
-        <iframe id="modal-iframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="player-placeholder"></div>
+      </div>
+
+      <div class="video-progress-container" id="progress-container">
+        <div class="video-progress-fill" id="progress-fill"></div>
       </div>
       
       <div class="modal-info">
