@@ -503,3 +503,37 @@ body {
   
   .reel-track { gap: 16px; }
 }
+
+/* --- VERTICAL BRAND LABEL --- */
+.vertical-brand {
+  position: fixed;
+  left: var(--ui-pad);
+  bottom: var(--ui-pad);
+  z-index: 2005; /* Above modal overlay */
+  
+  /* Rotate -90 degrees from the bottom-left corner */
+  transform: rotate(-90deg);
+  transform-origin: 0% 100%;
+  
+  /* Typography */
+  font-family: 'DegradMono', sans-serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-main);
+  
+  /* Prevent interaction/selection */
+  pointer-events: none;
+  user-select: none;
+  
+  /* Optional: slightly bolder look if needed, 
+     though DegradMono is usually light */
+  font-weight: 300; 
+}
+
+/* Adjust mobile layout if needed */
+@media (max-width: 768px) {
+  .vertical-brand {
+    display: none; /* Usually better to hide decorative corners on mobile */
+  }
+}

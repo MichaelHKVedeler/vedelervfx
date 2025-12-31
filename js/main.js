@@ -224,7 +224,7 @@ const RAW_DATA = [
     title: "KARPE WORLD",
     work: "Assets, Key, Camera track",
     desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
-    yt: "dQw4w9WgXcQ" 
+    yt: "" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
