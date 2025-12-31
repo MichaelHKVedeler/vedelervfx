@@ -30,28 +30,32 @@ const RAW_DATA = [
   { 
     thumb: "01_karpeworld_thumbnail.jpg", 
     vid: "karpeworld_preview.webm", 
-    title: "Karpe World",
+    title: "KARPE WORLD",
+    work: "Assets, Key, Camera track",
     desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
     yt: "" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
     vid: "flax_preview.webm",       
-    title: "Flax",
+    title: "FLAX",
+    work: "CG, Key",
     desc: "More info coming soon...",
     yt: "" 
   },
   { 
     thumb: "03_bossfight_thumbnail.jpg",  
     vid: "bossfight_preview.webm",  
-    title: "Bossfight",
+    title: "BOSSFIGHT",
+    work: "All aspects",
     desc: "My entry for the Boss Fight competition from CreateWithClint. Sound by Brage J Pedersen.",
     yt: "4BDR6Tx-zl8"
   },
   { 
     thumb: "04_coast_thumbnail.jpg",      
     vid: "coast_preview.webm",      
-    title: "Coast",
+    title: "COAST",
+    work: "All aspects",
     desc: "More info coming soon...",
     yt: "" 
   },
@@ -59,41 +63,47 @@ const RAW_DATA = [
     thumb: "05_CCTV_thumbnail.jpg",       
     vid: "cctv_preview.webm",       
     title: "CCTV",
+    work: "All aspects",
     desc: "A hobby project researching the use of ray portal shader in blender.",
     yt: "8qdRl0o8QBs"
   },
   { 
     thumb: "06_lego_thumbnail.jpg",       
     vid: "lego_preview.webm",       
-    title: "Lego",
+    title: "LEGO",
+    work: "All aspects",
     desc: "A fun exercise in trying to make procedural lego tools for blender.",
     yt: "544oUGIO8uY"
   },
   { 
     thumb: "07_robotcitadel_thumbnail.jpg", 
     vid: "robotcitadel_preview.webm", 
-    title: "Robot Citadel",
+    title: "ROBOT CITADEL",
+    work: "All aspects",
     desc: "Hard-surface modelling, large scale environment. Sound by Brage J Pedersen.",
     yt: "ZH79UuD8e6o"
   },
   { 
     thumb: "08_eternalascend_thumbnail.jpg", 
     vid: "eternalascend_preview.webm", 
-    title: "Eternal Ascend",
+    title: "ETERNAL ASCEND",
+    work: "All aspects",
     desc: "My entry for the Eternal Ascend competition from CreateWithClint.",
     yt: "S4hT78YlygY"
   },
   { 
     thumb: "09_hospital_thumbnail.jpg",   
     vid: "hospital_preview.webm",   
-    title: "Tape_04",
+    title: "TAPE_04",
+    work: "All aspects",
     desc: "Small horror-themed hobby project.",
     yt: "f_4QprZOPUI"
   },
   { 
     thumb: "10_endlessengines_thumbnail.jpg", 
     vid: "endlessengines_preview.webm", 
-    title: "Endless Engines",
+    title: "ENDLESS ENGINES",
+    work: "All aspects",
     desc: "My entry for the Endless Engines community challenge, selected among the Top 100 submissions.",
     yt: "83_wCwVw_aU"
   }
@@ -104,6 +114,7 @@ const PROJECTS = RAW_DATA.map((p, i) => ({
   img: `assets/portfolio/${p.thumb}`,
   vid: `assets/portfolio/${p.vid}`,
   title: p.title,
+  work: p.work,
   desc: p.desc,
   yt: p.yt
 }));
@@ -160,16 +171,28 @@ function makeItem(p) {
   d.style.backgroundImage = `url("${p.img}")`;
   d.style.backgroundSize = "cover";
   d.style.backgroundPosition = "center";
-  d.style.backgroundColor = "#e0e0e0"; // Light placeholder
+  d.style.backgroundColor = "#e0e0e0"; 
+
+  // --- CHANGED: Create Info Container for Title + Work ---
+  const info = document.createElement("div");
+  info.className = "reel-info";
 
   const title = document.createElement("div");
   title.className = "reel-title";
   title.innerText = p.title;
-  d.appendChild(title);
+
+  const work = document.createElement("div");
+  work.className = "reel-work";
+  // Display work if it exists, otherwise just stay empty (or hide)
+  work.innerText = p.work || ""; 
+
+  info.appendChild(title);
+  info.appendChild(work);
+  d.appendChild(info);
+  // -----------------------------------------------------
   
   // Click Handler: Checks the global isDragging flag
   d.addEventListener("click", (e) => {
-    // If we just finished a drag, block the click.
     if (isDragging) {
       e.preventDefault();
       e.stopPropagation();
@@ -184,8 +207,9 @@ function makeItem(p) {
     // Don't play video if dragging
     if (isDragging) return;
 
-    title.style.opacity = "1";
-    title.style.transform = "translateY(0)";
+    // Show the whole info container (Title + Work)
+    info.style.opacity = "1";
+    info.style.transform = "translateY(0)";
 
     if (!video) {
       video = document.createElement("video");
@@ -203,7 +227,7 @@ function makeItem(p) {
       video.style.opacity = "0";
       video.style.transition = "opacity 0.4s ease";
       
-      d.insertBefore(video, title);
+      d.insertBefore(video, info);
       
       video.play()
         .then(() => { video.style.opacity = "1"; })
@@ -215,8 +239,9 @@ function makeItem(p) {
   });
 
   d.addEventListener("mouseleave", () => {
-    title.style.opacity = "0";
-    title.style.transform = "translateY(10px)";
+    // Hide info
+    info.style.opacity = "0";
+    info.style.transform = "translateY(10px)";
 
     if (video) {
       video.style.opacity = "0";
