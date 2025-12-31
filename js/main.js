@@ -1,29 +1,4 @@
-import { initColorBends } from "./ColorBends.js";
 import { createGradualBlur } from "./GradualBlur.js";
-
-const el = document.getElementById("color-bends");
-
-const bg = initColorBends(el, {
-  // HOME default vibe (dark, lensy)
-  colors: [],
-  rotation: 0.0,
-  speed: 0.18,
-  scale: 1,
-  frequency: 1.0,
-  warpStrength: 1.18,
-  mouseInfluence: 1.0,
-  parallax: 0.0,
-  noise: 0.02,
-  transparent: false,
-  vignette: 0.90,
-  aberration: 1.7,
-});
-
-const moods = {
-  home:    { warpStrength: 1.18, aberration: 1.7, noise: 0.02, mouseInfluence: 1.05, vignette: 0.90 },
-  about:   { warpStrength: 0.95, aberration: 0.9, noise: 0.015, mouseInfluence: 0.6, vignette: 0.92 },
-  contact: { warpStrength: 0.9,  aberration: 0.75, noise: 0.012, mouseInfluence: 0.5, vignette: 0.94 },
-};
 
 function setView(view) {
   document.querySelectorAll(".panel").forEach(p => {
@@ -33,8 +8,6 @@ function setView(view) {
   document.querySelectorAll(".navbtn").forEach(b => {
     b.classList.toggle("is-active", b.dataset.view === view);
   });
-
-  bg.setParams(moods[view] || moods.home);
 }
 
 document.addEventListener("click", (e) => {
@@ -187,7 +160,7 @@ function makeItem(p) {
   d.style.backgroundImage = `url("${p.img}")`;
   d.style.backgroundSize = "cover";
   d.style.backgroundPosition = "center";
-  d.style.backgroundColor = "#111";
+  d.style.backgroundColor = "#e0e0e0"; // Light placeholder
 
   const title = document.createElement("div");
   title.className = "reel-title";
@@ -282,19 +255,14 @@ function measureSetWidth() {
   const firstItemOfSecondSet = items[PROJECTS.length];
   if (!firstItemOfSecondSet) return;
 
-  // 1. Calculate Ratio: Where are we currently relative to the total width?
-  // If setWidth is 0 (first run), ratio is 0.
   let currentRatio = 0;
   if (setWidth > 0) {
     currentRatio = scrollPos / setWidth;
   }
 
-  // 2. Measure new Width
   const newSetWidth = firstItemOfSecondSet.offsetLeft; 
   
-  // 3. First Load vs Resize logic
   if (setWidth === 0) {
-    // FIRST LOAD: Center the reel
     const viewportCenter = viewport.clientWidth * 0.5;
     const itemWidth = items[0].offsetWidth;
     const initialPos = newSetWidth - (viewportCenter - itemWidth / 2);
@@ -302,13 +270,10 @@ function measureSetWidth() {
     scrollPos = initialPos;
     targetPos = initialPos;
   } else {
-    // RESIZE: Keep the relative position (Ratio)
-    // This prevents the "jumping" effect when switching Mobile <-> Desktop
     scrollPos = currentRatio * newSetWidth;
     targetPos = scrollPos;
   }
   
-  // Update global variable
   setWidth = newSetWidth;
 }
 
@@ -317,17 +282,13 @@ window.addEventListener("resize", measureSetWidth);
 
 // 1. MOUSE WHEEL
 window.addEventListener("wheel", (e) => {
-  // Only intercept wheel if we are hovering the reel or on mobile
   if (e.target.closest(".reel") || window.innerWidth < 768) {
     const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-    // Debounce vertical scroll slightly to allow page scroll if not strictly horizontal? 
-    // For now, we lock it to the reel:
     targetPos += delta * 1.0; 
   }
 }, { passive: false });
 
 // 2. KINETIC DRAG (Mouse + Touch)
-// We use window listeners for move/up to ensure drag continues even if mouse leaves the div.
 let dragStartX = 0;
 let dragLastX = 0;
 let isPointerDown = false;
@@ -335,19 +296,14 @@ let velocity = 0;
 
 viewport.addEventListener("pointerdown", (e) => {
   isPointerDown = true;
-  isDragging = false; // Reset drag flag
+  isDragging = false; 
   dragStartX = e.clientX;
   dragLastX = e.clientX;
   velocity = 0; 
   
-  // Stop momentum immediately on grab
   targetPos = scrollPos; 
   
-  // Visual Feedback
   viewport.style.cursor = "grabbing";
-  
-  // PREVENT DEFAULT DRAG (Images/Text)
-  // This is crucial to prevent the browser's native "drag image ghost" behavior
   e.preventDefault(); 
 });
 
@@ -357,15 +313,12 @@ window.addEventListener("pointermove", (e) => {
   const x = e.clientX;
   const diff = dragLastX - x;
   
-  // Threshold to mark this as a "Drag" operation vs a "Click"
   if (Math.abs(x - dragStartX) > 5) {
     isDragging = true;
   }
 
-  // Update target directly for 1:1 movement
   targetPos += diff * 1.5; 
   
-  // Calculate instantaneous velocity for the "throw"
   velocity = diff;
   dragLastX = x;
 });
@@ -378,21 +331,14 @@ function handleDragEnd() {
   isPointerDown = false;
   viewport.style.cursor = "grab";
 
-  // Apply Momentum (fling) based on final velocity
   targetPos += velocity * 15; 
   
-  // We use a tiny timeout to clear 'isDragging'.
-  // This ensures the 'click' event (which fires immediately after pointerup)
-  // still sees isDragging = true and knows to block the modal.
   setTimeout(() => {
     isDragging = false;
   }, 50);
 }
 
-
-// Animation Loop
 function animate() {
-  // Lerp scrollPos towards targetPos
   scrollPos += (targetPos - scrollPos) * 0.08;
 
   if (setWidth > 0) {
