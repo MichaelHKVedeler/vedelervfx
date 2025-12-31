@@ -1,25 +1,45 @@
 /* ---------------------------
-   YOUTUBE API SETUP
+   1. GLOBAL DOM ELEMENTS
 ---------------------------- */
-// We need to load the API asynchronously
+const modal = document.getElementById("modal-overlay");
+const modalContent = document.querySelector(".modal-content");
+const modalVideoWrapper = document.querySelector(".modal-video-wrapper");
+const modalTitle = document.getElementById("modal-title");
+const modalDesc = document.getElementById("modal-desc");
+const modalCloseBtn = document.getElementById("modal-close");
+const modalBg = document.getElementById("modal-bg");
+
+const progressFill = document.getElementById("progress-fill");
+const progressContainer = document.getElementById("progress-container");
+
+const track = document.getElementById("reel-track");
+const viewport = document.querySelector(".reel-viewport");
+
+/* ---------------------------
+   2. YOUTUBE API SETUP
+---------------------------- */
 let player = null;
 let isPlayerReady = false;
 let progressInterval = null;
 
-// 1. Inject API Script
-const tag = document.createElement('script');
-tag.src = "https://www.youtube.com/iframe_api";
-const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+// Inject API Script
+if (!window.YT) {
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  const firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+}
 
-// 2. Define global callback
+// Global callback for YouTube API
 window.onYouTubeIframeAPIReady = function() {
-  // Wait for calls
+  // Player will be initialized when modal opens
 };
 
 function initPlayer(videoId) {
   if (player) {
     player.loadVideoById(videoId);
+    modalVideoWrapper.classList.remove("is-playing");
+    player.stopVideo(); 
     return;
   }
 
@@ -28,13 +48,13 @@ function initPlayer(videoId) {
     width: '100%',
     videoId: videoId,
     playerVars: {
-      'autoplay': 1,
+      'autoplay': 0,
       'controls': 0, 
-      'disablekb': 1, // Disable keyboard controls
-      'fs': 0,        // Disable fullscreen button
+      'disablekb': 1, 
+      'fs': 0,        
       'rel': 0,
       'modestbranding': 1,
-      'loop': 1,       // Try native loop
+      'loop': 1,       
       'playlist': videoId 
     },
     events: {
@@ -46,27 +66,46 @@ function initPlayer(videoId) {
 
 function onPlayerReady(event) {
   isPlayerReady = true;
-  event.target.playVideo();
-  startProgressLoop();
+  // Video is paused by default, overlay is visible.
 }
 
 function onPlayerStateChange(event) {
+  // 1 = Playing
   if (event.data === YT.PlayerState.PLAYING) {
+    modalVideoWrapper.classList.add("is-playing");
     startProgressLoop();
   } 
-  // CHANGED: Force loop if native loop fails
+  // 0 = Ended (Loop Logic)
   else if (event.data === YT.PlayerState.ENDED) {
     player.playVideo(); 
   }
+  // Paused / Cued
   else {
+    modalVideoWrapper.classList.remove("is-playing");
     stopProgressLoop();
   }
 }
 
-// 3. Progress Bar Logic
-const progressFill = document.getElementById("progress-fill");
-const progressContainer = document.getElementById("progress-container");
+// --- CLICK TO TOGGLE PLAY/PAUSE ---
+if (modalVideoWrapper) {
+  modalVideoWrapper.addEventListener("click", () => {
+    // FIX: Strictly ignore clicks if modal is not open
+    if (!modal.classList.contains("is-active")) return;
+    
+    if (!player || !isPlayerReady) return;
+    
+    const state = player.getPlayerState();
+    if (state === YT.PlayerState.PLAYING) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  });
+}
 
+/* ---------------------------
+   3. PROGRESS BAR LOGIC
+---------------------------- */
 function startProgressLoop() {
   stopProgressLoop();
   progressInterval = requestAnimationFrame(updateProgress);
@@ -78,7 +117,6 @@ function stopProgressLoop() {
 
 function updateProgress() {
   if (!player || !isPlayerReady) return;
-  
   if (typeof player.getCurrentTime !== 'function' || typeof player.getDuration !== 'function') return;
 
   const current = player.getCurrentTime();
@@ -88,35 +126,81 @@ function updateProgress() {
     const percent = (current / duration) * 100;
     progressFill.style.width = `${percent}%`;
   }
-  
   progressInterval = requestAnimationFrame(updateProgress);
 }
 
-// 4. Scrubbing Logic
-progressContainer.addEventListener("click", (e) => {
-  if (!player || !isPlayerReady) return;
-  
-  const rect = progressContainer.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const width = rect.width;
-  const clickPercent = x / width; 
-  
-  const duration = player.getDuration();
-  if (duration > 0) {
-    const seekTime = duration * clickPercent;
-    player.seekTo(seekTime, true);
-  }
-});
+// Scrubbing
+if (progressContainer) {
+  progressContainer.addEventListener("click", (e) => {
+    e.stopPropagation(); // Don't trigger play/pause toggle
+
+    if (!player || !isPlayerReady) return;
+    
+    const rect = progressContainer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+    const clickPercent = x / width; 
+    
+    const duration = player.getDuration();
+    if (duration > 0) {
+      const seekTime = duration * clickPercent;
+      player.seekTo(seekTime, true);
+      player.playVideo(); 
+    }
+  });
+}
 
 /* ---------------------------
-   APP LOGIC
+   4. MODAL & NAVIGATION LOGIC
 ---------------------------- */
 
+function openModal(project) {
+  modalTitle.innerText = project.title;
+  modalDesc.innerHTML = project.desc;
+  
+  if (project.yt && project.yt !== "") {
+    modalContent.classList.remove("no-video");
+    modalVideoWrapper.style.display = "block";
+    progressContainer.style.display = "block"; 
+    
+    // Reset state
+    modalVideoWrapper.classList.remove("is-playing");
+    
+    initPlayer(project.yt);
+    
+  } else {
+    modalContent.classList.add("no-video");
+    modalVideoWrapper.style.display = "none";
+    progressContainer.style.display = "none"; 
+    
+    if (player) player.stopVideo();
+  }
+  
+  modal.classList.add("is-active");
+}
+
+function closeModal() {
+  modal.classList.remove("is-active");
+  stopProgressLoop();
+  
+  setTimeout(() => {
+    if (player) player.stopVideo();
+    modalContent.classList.remove("no-video"); 
+    modalVideoWrapper.classList.remove("is-playing");
+  }, 300);
+}
+
+modalCloseBtn.addEventListener("click", closeModal);
+modalBg.addEventListener("click", closeModal);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.classList.contains("is-active")) closeModal();
+});
+
+// Navigation Views
 function setView(view) {
   document.querySelectorAll(".panel").forEach(p => {
     p.classList.toggle("is-active", p.dataset.panel === view);
   });
-
   document.querySelectorAll(".navbtn").forEach(b => {
     b.classList.toggle("is-active", b.dataset.view === view);
   });
@@ -131,13 +215,8 @@ document.addEventListener("click", (e) => {
 setView("home");
 
 /* ---------------------------
-   FILM REEL (Infinite Loop + Kinetic Drag)
+   5. REEL LOGIC & DATA
 ---------------------------- */
-
-const track = document.getElementById("reel-track");
-const viewport = document.querySelector(".reel-viewport");
-
-// Manual Configuration
 const RAW_DATA = [
   { 
     thumb: "01_karpeworld_thumbnail.jpg", 
@@ -145,7 +224,7 @@ const RAW_DATA = [
     title: "KARPE WORLD",
     work: "Assets, Key, Camera track",
     desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
-    yt: "" 
+    yt: "dQw4w9WgXcQ" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
@@ -231,57 +310,7 @@ const PROJECTS = RAW_DATA.map((p, i) => ({
   yt: p.yt
 }));
 
-// --- MODAL LOGIC ---
-const modal = document.getElementById("modal-overlay");
-const modalContent = document.querySelector(".modal-content"); 
-const modalTitle = document.getElementById("modal-title");
-const modalDesc = document.getElementById("modal-desc");
-const modalVideoWrapper = document.querySelector(".modal-video-wrapper"); 
-const modalCloseBtn = document.getElementById("modal-close");
-const modalBg = document.getElementById("modal-bg");
-
-function openModal(project) {
-  modalTitle.innerText = project.title;
-  modalDesc.innerHTML = project.desc;
-  
-  if (project.yt && project.yt !== "") {
-    modalContent.classList.remove("no-video");
-    modalVideoWrapper.style.display = "block";
-    progressContainer.style.display = "block"; 
-    
-    initPlayer(project.yt);
-    
-  } else {
-    modalContent.classList.add("no-video");
-    modalVideoWrapper.style.display = "none";
-    progressContainer.style.display = "none"; 
-    
-    if (player) player.stopVideo();
-  }
-  
-  modal.classList.add("is-active");
-}
-
-function closeModal() {
-  modal.classList.remove("is-active");
-  stopProgressLoop();
-  
-  setTimeout(() => {
-    if (player) {
-      player.stopVideo();
-    }
-    modalContent.classList.remove("no-video"); 
-  }, 300);
-}
-
-modalCloseBtn.addEventListener("click", closeModal);
-modalBg.addEventListener("click", closeModal);
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && modal.classList.contains("is-active")) closeModal();
-});
-
-
-// State to differentiate between a "Drag" and a "Click"
+// State for drag vs click
 let isDragging = false;
 
 function makeItem(p) {
@@ -293,7 +322,6 @@ function makeItem(p) {
   d.style.backgroundPosition = "center";
   d.style.backgroundColor = "#e0e0e0"; 
 
-  // --- Info Container for Title + Work ---
   const info = document.createElement("div");
   info.className = "reel-info";
 
@@ -308,9 +336,7 @@ function makeItem(p) {
   info.appendChild(title);
   info.appendChild(work);
   d.appendChild(info);
-  // -----------------------------------------------------
   
-  // Click Handler: Checks the global isDragging flag
   d.addEventListener("click", (e) => {
     if (isDragging) {
       e.preventDefault();
@@ -323,10 +349,8 @@ function makeItem(p) {
   let video = null;
 
   d.addEventListener("mouseenter", () => {
-    // Don't play video if dragging
     if (isDragging) return;
 
-    // Show the whole info container (Title + Work)
     info.style.opacity = "1";
     info.style.transform = "translateY(0)";
 
@@ -358,7 +382,6 @@ function makeItem(p) {
   });
 
   d.addEventListener("mouseleave", () => {
-    // Hide info
     info.style.opacity = "0";
     info.style.transform = "translateY(10px)";
 
@@ -385,15 +408,15 @@ function buildReel() {
 }
 buildReel();
 
-// --- SCROLL / DRAG PHYSICS ---
-
+/* ---------------------------
+   6. SCROLL / DRAG PHYSICS
+---------------------------- */
 let setWidth = 0;
 let scrollPos = 0;
 let targetPos = 0;
 
 function measureSetWidth() {
   const items = track.querySelectorAll(".reel-item");
-  
   if (!viewport || !items.length) return;
 
   const firstItemOfSecondSet = items[PROJECTS.length];
@@ -424,7 +447,7 @@ function measureSetWidth() {
 window.addEventListener("load", measureSetWidth);
 window.addEventListener("resize", measureSetWidth);
 
-// 1. MOUSE WHEEL
+// Mouse Wheel
 window.addEventListener("wheel", (e) => {
   if (e.target.closest(".reel") || window.innerWidth < 768) {
     const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
@@ -432,7 +455,7 @@ window.addEventListener("wheel", (e) => {
   }
 }, { passive: false });
 
-// 2. KINETIC DRAG (Mouse + Touch)
+// Kinetic Drag
 let dragStartX = 0;
 let dragLastX = 0;
 let isPointerDown = false;
@@ -444,25 +467,18 @@ viewport.addEventListener("pointerdown", (e) => {
   dragStartX = e.clientX;
   dragLastX = e.clientX;
   velocity = 0; 
-  
   targetPos = scrollPos; 
-  
   viewport.style.cursor = "grabbing";
   e.preventDefault(); 
 });
 
 window.addEventListener("pointermove", (e) => {
   if (!isPointerDown) return;
-
   const x = e.clientX;
   const diff = dragLastX - x;
-  
-  if (Math.abs(x - dragStartX) > 5) {
-    isDragging = true;
-  }
+  if (Math.abs(x - dragStartX) > 5) isDragging = true;
 
   targetPos += diff * 1.5; 
-  
   velocity = diff;
   dragLastX = x;
 });
@@ -474,7 +490,6 @@ function handleDragEnd() {
   if (!isPointerDown) return;
   isPointerDown = false;
   viewport.style.cursor = "grab";
-
   targetPos += velocity * 15; 
   
   setTimeout(() => {
@@ -490,7 +505,6 @@ function animate() {
     const x = -wrapped - setWidth;
     track.style.transform = `translate3d(${x}px, 0, 0)`;
   }
-
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
