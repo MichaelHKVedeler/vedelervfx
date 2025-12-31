@@ -134,32 +134,15 @@ body {
   justify-content: center;
 }
 
-.gradual-blur {
-  pointer-events: none; 
-  isolation: isolate; 
-}
-
 .reel-viewport {
   width: 100vw;
   height: clamp(220px, 33vh, 420px);
   overflow: hidden;
   position: relative;
   
-  -webkit-mask-image: linear-gradient(
-    to right, 
-    transparent 0px, 
-    black 150px, 
-    black calc(100% - 150px), 
-    transparent 100%
-  );
-  
-  mask-image: linear-gradient(
-    to right, 
-    transparent 0px, 
-    black 150px, 
-    black calc(100% - 150px), 
-    transparent 100%
-  );
+  /* Hard Edge / No Gradient Mask */
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 .reel-track{
@@ -173,7 +156,7 @@ body {
 .reel-item {
   height: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 28px;
+  border-radius: 0; /* REMOVED ROUNDING */
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
@@ -267,12 +250,12 @@ body {
   border-bottom-color: var(--accent);
 }
 
-/* --- UPDATED COPYRIGHT --- */
+/* --- COPYRIGHT --- */
 .copyright {
   position: fixed;
-  right: var(--ui-pad); /* Align with nav buttons */
-  bottom: var(--ui-pad); /* Align with bottom margin */
-  left: auto; /* Reset */
+  right: var(--ui-pad);
+  bottom: var(--ui-pad); 
+  left: auto;
   
   text-align: right;
   font-size: 11px;
@@ -280,10 +263,10 @@ body {
   color: #010101;
   
   user-select: none;
-  text-transform: uppercase; /* Ensures uniform casing */
+  text-transform: uppercase;
   letter-spacing: 0.05em;
   z-index: 10;
-  pointer-events: none; /* Allows clicks to pass through if necessary, unless text needs selecting */
+  pointer-events: none;
 }
 
 /* --- MODAL OVERLAY --- */
@@ -309,6 +292,7 @@ body {
   position: absolute;
   inset: 0;
   background: rgba(240, 241, 243, 0.95); 
+  /* Modal background blur preserved */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -440,6 +424,4 @@ body {
   }
   
   .reel-track { gap: 16px; }
-  
-  .gradual-blur { display: none !important; }
 }

@@ -1,5 +1,3 @@
-import { createGradualBlur } from "./GradualBlur.js";
-
 function setView(view) {
   document.querySelectorAll(".panel").forEach(p => {
     p.classList.toggle("is-active", p.dataset.panel === view);
@@ -173,7 +171,7 @@ function makeItem(p) {
   d.style.backgroundPosition = "center";
   d.style.backgroundColor = "#e0e0e0"; 
 
-  // --- CHANGED: Create Info Container for Title + Work ---
+  // --- Info Container for Title + Work ---
   const info = document.createElement("div");
   info.className = "reel-info";
 
@@ -183,7 +181,6 @@ function makeItem(p) {
 
   const work = document.createElement("div");
   work.className = "reel-work";
-  // Display work if it exists, otherwise just stay empty (or hide)
   work.innerText = p.work || ""; 
 
   info.appendChild(title);
@@ -375,27 +372,3 @@ function animate() {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
-
-/* ---------------------------
-   GRADUAL BLUR (Edges)
----------------------------- */
-
-if (window.innerWidth > 768) {
-  createGradualBlur(document.body, { 
-    position: 'left',
-    fixed: true,
-    strength: 2,
-    divCount: 5,
-    size: '150px',
-    zIndex: 5          
-  });
-
-  createGradualBlur(document.body, {
-    position: 'right',
-    fixed: true,
-    strength: 2,
-    divCount: 5,
-    size: '150px',
-    zIndex: 5
-  });
-}
