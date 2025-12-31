@@ -346,7 +346,7 @@ body {
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   
-  /* CHANGED: Disable interaction on the video itself */
+  /* Disable interaction on the video itself */
   pointer-events: none; 
 }
 
@@ -362,12 +362,17 @@ body {
 
 /* --- CUSTOM PROGRESS BAR --- */
 .video-progress-container {
+  /* CHANGED: Absolute position to align inside wrapper */
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  height: 4px;
-  background: rgba(0,0,0,0.1);
+  
+  /* CHANGED: Height increased to 8px */
+  height: 8px;
+  
+  background: rgba(0,0,0,0.2);
   cursor: pointer;
-  position: relative;
-  margin-top: -12px;
   transition: height 0.1s;
   
   /* Ensure interaction is enabled here even if wrapper is disabled */
@@ -376,7 +381,8 @@ body {
 }
 
 .video-progress-container:hover {
-  height: 8px;
+  /* CHANGED: Grows to 12px on hover */
+  height: 12px;
 }
 
 .video-progress-fill {
