@@ -327,17 +327,19 @@ body {
 
 /* Close Button */
 .modal-close {
-  position: absolute;
-  top: -40px;
-  right: 0;
+  position: fixed;
+  top: var(--ui-pad);
+  right: var(--ui-pad);
+  width: auto;
+  height: 18px;
   background: none;
   border: none;
   color: var(--text-main);
   font-size: 24px;
   cursor: pointer;
-  padding: 8px;
   transition: color 0.2s;
   font-family: inherit;
+  gap: 18px;
 }
 
 .modal-close:hover {
@@ -478,7 +480,10 @@ body {
 
 /* --- MOBILE / RESPONSIVE ADJUSTMENTS --- */
 @media (max-width: 768px) {
-  .brand-float { display: none; }
+  .brand-float { 
+    scale: 0.5; 
+    top: 34px;
+  }
 
   .nav-float {
     left: 0;
