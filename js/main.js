@@ -297,6 +297,22 @@ const RAW_DATA = [
     work: "All aspects",
     desc: "My entry for the Endless Engines community challenge, selected among the Top 100 submissions.",
     yt: "83_wCwVw_aU"
+  },
+  { 
+    thumb: "11_dreamsequence_thumbnail.jpg", 
+    vid: "dreamsequence_preview.webm", 
+    title: "DREAM SEQUENCE",
+    work: "All aspects",
+    desc: "My entry for the Dream Sequence community challenge.",
+    yt: "XmoNzrBScck"
+  },
+  { 
+    thumb: "12_playstation_thumbnail.jpg", 
+    vid: "playstation_preview.webm", 
+    title: "PLAYSTATION",
+    work: "All aspects",
+    desc: "A hobby project, trying to make a promo video for a fictional event/reveal at playstation.",
+    yt: "vKFeNwjK0OY"
   }
 ];
 
