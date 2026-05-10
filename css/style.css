@@ -435,12 +435,19 @@ body {
   border-bottom: 4px solid var(--accent); /* The blue line marking thing */
 }
 
-/* Custom Fullscreen UI Button */
-.fullscreen-btn {
+/* Bottom Controls Container */
+.bottom-controls {
   position: absolute;
   bottom: 24px;
   right: 24px;
   z-index: 40;
+  display: flex;
+  gap: 12px;
+  pointer-events: none; /* Let clicks pass through the container wrapper */
+}
+
+/* Custom Fullscreen & Audio UI Buttons */
+.fullscreen-btn, .audio-btn {
   background: rgba(0,0,0,0.6);
   color: #fff;
   border: 1px solid rgba(255,255,255,0.3);
@@ -450,23 +457,40 @@ body {
   cursor: pointer;
   pointer-events: auto;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.fullscreen-btn:hover {
+.audio-btn {
+  padding: 8px 12px; /* Squarer dimensions for the icon */
+}
+
+.audio-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
+  /* Forces the SVG to display crisp white, regardless of its original color */
+  filter: brightness(0) invert(1); 
+}
+
+.fullscreen-btn:hover, .audio-btn:hover {
   background: #010101;
   color: var(--accent);
   border-color: var(--accent);
 }
 
-/* Ensure the Exit Fullscreen button matches the opaque styling */
-.modal-content.is-fullscreen .fullscreen-btn {
+/* Ensure the buttons match the opaque styling in Fullscreen */
+.modal-content.is-fullscreen .fullscreen-btn,
+.modal-content.is-fullscreen .audio-btn {
   background: var(--text-main);
   color: var(--bg-color);
   border: 1px solid var(--bg-color);
   opacity: 1;
 }
 
-.modal-content.is-fullscreen .fullscreen-btn:hover {
+.modal-content.is-fullscreen .fullscreen-btn:hover,
+.modal-content.is-fullscreen .audio-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
 }

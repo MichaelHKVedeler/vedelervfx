@@ -195,20 +195,49 @@ function openModal(project) {
     
     modalVideoWrapper.classList.remove("is-playing");
     
-    // Fullscreen Button Logic
-    let fsBtn = modalVideoWrapper.querySelector('.fullscreen-btn');
-    if (!fsBtn) {
-      fsBtn = document.createElement("button");
+    // Bottom Controls Container
+    let bottomControls = modalVideoWrapper.querySelector('.bottom-controls');
+    if (!bottomControls) {
+      bottomControls = document.createElement("div");
+      bottomControls.className = "bottom-controls";
+      
+      // Audio Button Logic
+      const audioBtn = document.createElement("button");
+      audioBtn.className = "audio-btn";
+      audioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
+      audioBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (activeVideoNode) {
+          activeVideoNode.muted = !activeVideoNode.muted;
+          audioBtn.innerHTML = activeVideoNode.muted ? 
+            `<img src="assets/speaker-simple-x.svg" alt="Sound Off">` : 
+            `<img src="assets/speaker-high.svg" alt="Sound On">`;
+        }
+      };
+      
+      // Fullscreen Button Logic
+      const fsBtn = document.createElement("button");
       fsBtn.className = "fullscreen-btn";
       fsBtn.onclick = (e) => {
         e.stopPropagation(); // Don't trigger video pause
         modalContent.classList.toggle("is-fullscreen");
         fsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
       };
-      modalVideoWrapper.appendChild(fsBtn);
+      
+      bottomControls.appendChild(audioBtn);
+      bottomControls.appendChild(fsBtn);
+      modalVideoWrapper.appendChild(bottomControls);
     }
-    // Ensure text matches state if we navigated PREV/NEXT while already in fullscreen
-    fsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
+    
+    // Ensure states match if we navigated PREV/NEXT or reopened modal
+    const existingFsBtn = bottomControls.querySelector('.fullscreen-btn');
+    if (existingFsBtn) existingFsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
+    
+    const existingAudioBtn = bottomControls.querySelector('.audio-btn');
+    if (existingAudioBtn) {
+        existingAudioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
+        if (activeVideoNode) activeVideoNode.muted = false; // Default to ON
+    }
     
     if (project.breakdown && project.breakdown !== "") {
         const toggleContainer = document.createElement("div");
@@ -260,6 +289,8 @@ function closeModal() {
   modalContent.classList.remove("is-fullscreen");
   const fsBtn = modalVideoWrapper.querySelector('.fullscreen-btn');
   if (fsBtn) fsBtn.innerText = "FULLSCREEN";
+  const audioBtn = modalVideoWrapper.querySelector('.audio-btn');
+  if (audioBtn) audioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
   
   setTimeout(() => {
     if (activeVideoNode) {
