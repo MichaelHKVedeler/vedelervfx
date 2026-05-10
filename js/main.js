@@ -153,12 +153,62 @@ function openModal(project) {
   const existingToggles = modalContent.querySelector('.video-toggles');
   if (existingToggles) existingToggles.remove();
   
+  const oldPrev = modalContent.querySelector('.fs-nav-prev');
+  if (oldPrev) oldPrev.remove();
+  const oldNext = modalContent.querySelector('.fs-nav-next');
+  if (oldNext) oldNext.remove();
+  
+  // Find adjacent projects, skipping those without a final video
+  let prevId = (project.id - 1 + PROJECTS.length) % PROJECTS.length;
+  while (!PROJECTS[prevId].final && prevId !== project.id) {
+      prevId = (prevId - 1 + PROJECTS.length) % PROJECTS.length;
+  }
+  
+  let nextId = (project.id + 1) % PROJECTS.length;
+  while (!PROJECTS[nextId].final && nextId !== project.id) {
+      nextId = (nextId + 1) % PROJECTS.length;
+  }
+
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "fs-nav-btn fs-nav-prev";
+  prevBtn.innerText = "<";
+  prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      openModal(PROJECTS[prevId]);
+  };
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "fs-nav-btn fs-nav-next";
+  nextBtn.innerText = ">";
+  nextBtn.onclick = (e) => {
+      e.stopPropagation();
+      openModal(PROJECTS[nextId]);
+  };
+
+  modalContent.appendChild(prevBtn);
+  modalContent.appendChild(nextBtn);
+  
   if (project.final && project.final !== "") {
     modalContent.classList.remove("no-video");
     modalVideoWrapper.style.display = "block";
     progressContainer.style.display = "block"; 
     
     modalVideoWrapper.classList.remove("is-playing");
+    
+    // Fullscreen Button Logic
+    let fsBtn = modalVideoWrapper.querySelector('.fullscreen-btn');
+    if (!fsBtn) {
+      fsBtn = document.createElement("button");
+      fsBtn.className = "fullscreen-btn";
+      fsBtn.onclick = (e) => {
+        e.stopPropagation(); // Don't trigger video pause
+        modalContent.classList.toggle("is-fullscreen");
+        fsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
+      };
+      modalVideoWrapper.appendChild(fsBtn);
+    }
+    // Ensure text matches state if we navigated PREV/NEXT while already in fullscreen
+    fsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
     
     if (project.breakdown && project.breakdown !== "") {
         const toggleContainer = document.createElement("div");
@@ -205,6 +255,11 @@ function openModal(project) {
 function closeModal() {
   modal.classList.remove("is-active");
   stopProgressLoop();
+  
+  // Reset fullscreen state when closing modal
+  modalContent.classList.remove("is-fullscreen");
+  const fsBtn = modalVideoWrapper.querySelector('.fullscreen-btn');
+  if (fsBtn) fsBtn.innerText = "FULLSCREEN";
   
   setTimeout(() => {
     if (activeVideoNode) {
