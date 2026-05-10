@@ -20,6 +20,7 @@ const viewport = document.querySelector(".reel-viewport");
 ---------------------------- */
 let activeVideoNode = null;
 let progressInterval = null;
+let globalMutedState = false; // Remembers audio preference across navigation
 
 const videoCache = new Map();
 let totalCacheSize = 0;
@@ -82,30 +83,13 @@ function updateProgress() {
 
   if (duration > 0) {
     const percent = (current / duration) * 100;
-    progressFill.style.width = `${percent}%`;
+    const fillNode = document.getElementById("ctrl-progress");
+    if (fillNode) fillNode.style.width = `${percent}%`;
   }
   progressInterval = requestAnimationFrame(updateProgress);
 }
 
-// Scrubbing
-if (progressContainer) {
-  progressContainer.addEventListener("click", (e) => {
-    e.stopPropagation(); 
-
-    if (!activeVideoNode) return;
-    
-    const rect = progressContainer.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const width = rect.width;
-    const clickPercent = x / width; 
-    
-    const duration = activeVideoNode.duration;
-    if (duration > 0) {
-      activeVideoNode.currentTime = duration * clickPercent;
-      activeVideoNode.play(); 
-    }
-  });
-}
+// Scrubbing logic is now bound dynamically inside openModal to the new control bar
 
 /* ---------------------------
    4. MODAL & NAVIGATION LOGIC
@@ -146,98 +130,109 @@ async function playVideoType(url) {
     }
 }
 
+function getNextId(currentId, direction, skipEmpty) {
+    let next = (currentId + direction + PROJECTS.length) % PROJECTS.length;
+    if (skipEmpty) {
+        while (!PROJECTS[next].final && next !== currentId) {
+            next = (next + direction + PROJECTS.length) % PROJECTS.length;
+        }
+    }
+    return next;
+}
+
 function openModal(project) {
   modalTitle.innerText = project.title;
   modalDesc.innerHTML = project.desc;
   
+  // Cleanup old dynamic elements
   const existingToggles = modalContent.querySelector('.video-toggles');
   if (existingToggles) existingToggles.remove();
-  
-  const oldPrev = modalContent.querySelector('.fs-nav-prev');
-  if (oldPrev) oldPrev.remove();
-  const oldNext = modalContent.querySelector('.fs-nav-next');
-  if (oldNext) oldNext.remove();
-  
-  // Find adjacent projects, skipping those without a final video
-  let prevId = (project.id - 1 + PROJECTS.length) % PROJECTS.length;
-  while (!PROJECTS[prevId].final && prevId !== project.id) {
-      prevId = (prevId - 1 + PROJECTS.length) % PROJECTS.length;
-  }
-  
-  let nextId = (project.id + 1) % PROJECTS.length;
-  while (!PROJECTS[nextId].final && nextId !== project.id) {
-      nextId = (nextId + 1) % PROJECTS.length;
-  }
+  const existingBar = modalContent.querySelector('.modal-control-bar');
+  if (existingBar) existingBar.remove();
 
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "fs-nav-btn fs-nav-prev";
-  prevBtn.innerText = "<";
-  prevBtn.onclick = (e) => {
-      e.stopPropagation();
-      openModal(PROJECTS[prevId]);
-  };
+  // Hide the legacy progress container completely
+  if (progressContainer) progressContainer.style.display = "none";
 
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "fs-nav-btn fs-nav-next";
-  nextBtn.innerText = ">";
-  nextBtn.onclick = (e) => {
-      e.stopPropagation();
-      openModal(PROJECTS[nextId]);
-  };
-
-  modalContent.appendChild(prevBtn);
-  modalContent.appendChild(nextBtn);
-  
   if (project.final && project.final !== "") {
     modalContent.classList.remove("no-video");
     modalVideoWrapper.style.display = "block";
-    progressContainer.style.display = "block"; 
-    
     modalVideoWrapper.classList.remove("is-playing");
+
+    // Create the new unified Control Bar inside the active video logic
+    // This ensures it never appears on non-video projects
+    const controlBar = document.createElement("div");
+    controlBar.className = "modal-control-bar";
+
+    const btnPrev = document.createElement("button");
+    btnPrev.className = "ctrl-btn ctrl-prev";
+    btnPrev.innerText = "PREVIOUS";
+    btnPrev.onclick = (e) => {
+        e.stopPropagation();
+        openModal(PROJECTS[getNextId(project.id, -1, true)]); // Force true to always skip empty projects
+    };
+
+    const middleSection = document.createElement("div");
+    middleSection.className = "ctrl-middle";
+    middleSection.innerHTML = `
+      <div class="ctrl-progress-fill" id="ctrl-progress"></div>
+      <span class="ctrl-index">${(project.id + 1).toString().padStart(2, '0')}/${PROJECTS.length.toString().padStart(2, '0')}</span>
+    `;
     
-    // Bottom Controls Container
-    let bottomControls = modalVideoWrapper.querySelector('.bottom-controls');
-    if (!bottomControls) {
-      bottomControls = document.createElement("div");
-      bottomControls.className = "bottom-controls";
-      
-      // Audio Button Logic
-      const audioBtn = document.createElement("button");
-      audioBtn.className = "audio-btn";
-      audioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
-      audioBtn.onclick = (e) => {
+    middleSection.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!activeVideoNode) return;
+        const rect = middleSection.getBoundingClientRect();
+        const clickPercent = (e.clientX - rect.left) / rect.width;
+        if (activeVideoNode.duration > 0) {
+            activeVideoNode.currentTime = activeVideoNode.duration * clickPercent;
+            activeVideoNode.play();
+        }
+    });
+
+    const btnAudio = document.createElement("button");
+    btnAudio.className = "ctrl-btn ctrl-icon ctrl-audio";
+    btnAudio.onclick = (e) => {
         e.stopPropagation();
         if (activeVideoNode) {
-          activeVideoNode.muted = !activeVideoNode.muted;
-          audioBtn.innerHTML = activeVideoNode.muted ? 
-            `<img src="assets/speaker-simple-x.svg" alt="Sound Off">` : 
-            `<img src="assets/speaker-high.svg" alt="Sound On">`;
+            activeVideoNode.muted = !activeVideoNode.muted;
+            globalMutedState = activeVideoNode.muted; // Save user preference
+            updateControlIcons();
         }
-      };
-      
-      // Fullscreen Button Logic
-      const fsBtn = document.createElement("button");
-      fsBtn.className = "fullscreen-btn";
-      fsBtn.onclick = (e) => {
-        e.stopPropagation(); // Don't trigger video pause
+    };
+
+    const btnFs = document.createElement("button");
+    btnFs.className = "ctrl-btn ctrl-icon ctrl-fs";
+    btnFs.onclick = (e) => {
+        e.stopPropagation();
         modalContent.classList.toggle("is-fullscreen");
-        fsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
-      };
-      
-      bottomControls.appendChild(audioBtn);
-      bottomControls.appendChild(fsBtn);
-      modalVideoWrapper.appendChild(bottomControls);
+        updateControlIcons();
+    };
+
+    const btnNext = document.createElement("button");
+    btnNext.className = "ctrl-btn ctrl-next";
+    btnNext.innerText = "NEXT";
+    btnNext.onclick = (e) => {
+        e.stopPropagation();
+        openModal(PROJECTS[getNextId(project.id, 1, true)]); // Force true to always skip empty projects
+    };
+
+    function updateControlIcons() {
+        const isMuted = activeVideoNode ? activeVideoNode.muted : false;
+        const isFs = modalContent.classList.contains("is-fullscreen");
+        btnAudio.innerHTML = `<img src="assets/speaker-${isMuted ? 'simple-x' : 'high'}.svg" alt="Audio">`;
+        btnFs.innerHTML = `<img src="assets/arrows-${isFs ? 'in' : 'out'}-simple.svg" alt="Fullscreen">`;
     }
+
+    controlBar.appendChild(btnPrev);
+    controlBar.appendChild(middleSection);
+    controlBar.appendChild(btnAudio);
+    controlBar.appendChild(btnFs);
+    controlBar.appendChild(btnNext);
     
-    // Ensure states match if we navigated PREV/NEXT or reopened modal
-    const existingFsBtn = bottomControls.querySelector('.fullscreen-btn');
-    if (existingFsBtn) existingFsBtn.innerText = modalContent.classList.contains("is-fullscreen") ? "EXIT FULLSCREEN" : "FULLSCREEN";
+    modalVideoWrapper.insertAdjacentElement('afterend', controlBar);
     
-    const existingAudioBtn = bottomControls.querySelector('.audio-btn');
-    if (existingAudioBtn) {
-        existingAudioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
-        if (activeVideoNode) activeVideoNode.muted = false; // Default to ON
-    }
+    if (activeVideoNode) activeVideoNode.muted = globalMutedState; // Apply remembered state
+    updateControlIcons();
     
     if (project.breakdown && project.breakdown !== "") {
         const toggleContainer = document.createElement("div");
@@ -273,7 +268,6 @@ function openModal(project) {
   } else {
     modalContent.classList.add("no-video");
     modalVideoWrapper.style.display = "none";
-    progressContainer.style.display = "none"; 
     
     if (activeVideoNode) activeVideoNode.pause();
   }
@@ -287,10 +281,6 @@ function closeModal() {
   
   // Reset fullscreen state when closing modal
   modalContent.classList.remove("is-fullscreen");
-  const fsBtn = modalVideoWrapper.querySelector('.fullscreen-btn');
-  if (fsBtn) fsBtn.innerText = "FULLSCREEN";
-  const audioBtn = modalVideoWrapper.querySelector('.audio-btn');
-  if (audioBtn) audioBtn.innerHTML = `<img src="assets/speaker-high.svg" alt="Sound On">`;
   
   setTimeout(() => {
     if (activeVideoNode) {
