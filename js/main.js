@@ -16,89 +16,48 @@ const track = document.getElementById("reel-track");
 const viewport = document.querySelector(".reel-viewport");
 
 /* ---------------------------
-   2. YOUTUBE API SETUP
+   2. NATIVE VIDEO & CACHE SETUP
 ---------------------------- */
-let player = null;
-let isPlayerReady = false;
+let activeVideoNode = null;
 let progressInterval = null;
 
-// Inject API Script
-if (!window.YT) {
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  const firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-}
+const videoCache = new Map();
+let totalCacheSize = 0;
+const MAX_CACHE_BYTES = 128 * 1024 * 1024; // 128 MB cache limit to protect iOS
 
-// Global callback for YouTube API
-window.onYouTubeIframeAPIReady = function() {
-  // Player will be initialized when modal opens
-};
-
-function initPlayer(videoId) {
-  if (player) {
-    player.loadVideoById(videoId);
-    modalVideoWrapper.classList.remove("is-playing");
-    player.stopVideo(); 
-    return;
+async function fetchAndCacheVideo(url) {
+  if (videoCache.has(url)) return videoCache.get(url).objectUrl;
+  
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const size = blob.size;
+  
+  // Evict oldest videos until we have enough space
+  while (totalCacheSize + size > MAX_CACHE_BYTES && videoCache.size > 0) {
+    const oldestKey = videoCache.keys().next().value;
+    const oldestData = videoCache.get(oldestKey);
+    URL.revokeObjectURL(oldestData.objectUrl);
+    totalCacheSize -= oldestData.size;
+    videoCache.delete(oldestKey);
   }
-
-  player = new YT.Player('player-placeholder', {
-    height: '100%',
-    width: '100%',
-    videoId: videoId,
-    playerVars: {
-      'autoplay': 0,
-      'controls': 0, 
-      'disablekb': 1, 
-      'fs': 0,        
-      'rel': 0,
-      'modestbranding': 1,
-      'loop': 1,       
-      'playlist': videoId 
-    },
-    events: {
-      'onReady': onPlayerReady,
-      'onStateChange': onPlayerStateChange
-    }
-  });
-}
-
-function onPlayerReady(event) {
-  isPlayerReady = true;
-  // Video is paused by default, overlay is visible.
-}
-
-function onPlayerStateChange(event) {
-  // 1 = Playing
-  if (event.data === YT.PlayerState.PLAYING) {
-    modalVideoWrapper.classList.add("is-playing");
-    startProgressLoop();
-  } 
-  // 0 = Ended (Loop Logic)
-  else if (event.data === YT.PlayerState.ENDED) {
-    player.playVideo(); 
-  }
-  // Paused / Cued
-  else {
-    modalVideoWrapper.classList.remove("is-playing");
-    stopProgressLoop();
-  }
+  
+  const objectUrl = URL.createObjectURL(blob);
+  videoCache.set(url, { objectUrl, size });
+  totalCacheSize += size;
+  
+  return objectUrl;
 }
 
 // --- CLICK TO TOGGLE PLAY/PAUSE ---
 if (modalVideoWrapper) {
-  modalVideoWrapper.addEventListener("click", () => {
-    // FIX: Strictly ignore clicks if modal is not open
-    if (!modal.classList.contains("is-active")) return;
+  modalVideoWrapper.addEventListener("click", (e) => {
+    if (!modal.classList.contains("is-active") || !activeVideoNode) return;
+    if (e.target.closest('.video-toggles')) return; // Ignore clicks natively bubbling up from our custom toggles
     
-    if (!player || !isPlayerReady) return;
-    
-    const state = player.getPlayerState();
-    if (state === YT.PlayerState.PLAYING) {
-      player.pauseVideo();
+    if (activeVideoNode.paused) {
+      activeVideoNode.play();
     } else {
-      player.playVideo();
+      activeVideoNode.pause();
     }
   });
 }
@@ -116,11 +75,10 @@ function stopProgressLoop() {
 }
 
 function updateProgress() {
-  if (!player || !isPlayerReady) return;
-  if (typeof player.getCurrentTime !== 'function' || typeof player.getDuration !== 'function') return;
+  if (!activeVideoNode) return;
 
-  const current = player.getCurrentTime();
-  const duration = player.getDuration();
+  const current = activeVideoNode.currentTime;
+  const duration = activeVideoNode.duration;
 
   if (duration > 0) {
     const percent = (current / duration) * 100;
@@ -132,20 +90,19 @@ function updateProgress() {
 // Scrubbing
 if (progressContainer) {
   progressContainer.addEventListener("click", (e) => {
-    e.stopPropagation(); // Don't trigger play/pause toggle
+    e.stopPropagation(); 
 
-    if (!player || !isPlayerReady) return;
+    if (!activeVideoNode) return;
     
     const rect = progressContainer.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const width = rect.width;
     const clickPercent = x / width; 
     
-    const duration = player.getDuration();
+    const duration = activeVideoNode.duration;
     if (duration > 0) {
-      const seekTime = duration * clickPercent;
-      player.seekTo(seekTime, true);
-      player.playVideo(); 
+      activeVideoNode.currentTime = duration * clickPercent;
+      activeVideoNode.play(); 
     }
   });
 }
@@ -154,26 +111,92 @@ if (progressContainer) {
    4. MODAL & NAVIGATION LOGIC
 ---------------------------- */
 
+async function playVideoType(url) {
+    if (!url) return;
+    modalVideoWrapper.classList.add("is-loading");
+    
+    if (!activeVideoNode) {
+        activeVideoNode = document.createElement("video");
+        activeVideoNode.className = "native-modal-video";
+        activeVideoNode.loop = true;
+        activeVideoNode.playsInline = true;
+        
+        activeVideoNode.addEventListener("play", () => {
+            modalVideoWrapper.classList.add("is-playing");
+            startProgressLoop();
+        });
+        activeVideoNode.addEventListener("pause", () => {
+            modalVideoWrapper.classList.remove("is-playing");
+            stopProgressLoop();
+        });
+        
+        modalVideoWrapper.appendChild(activeVideoNode);
+    } else {
+        activeVideoNode.pause();
+    }
+
+    try {
+        const objectUrl = await fetchAndCacheVideo(url);
+        activeVideoNode.src = objectUrl;
+        modalVideoWrapper.classList.remove("is-loading");
+        activeVideoNode.play();
+    } catch(e) {
+        console.error("Video load failed", e);
+        modalVideoWrapper.classList.remove("is-loading");
+    }
+}
+
 function openModal(project) {
   modalTitle.innerText = project.title;
   modalDesc.innerHTML = project.desc;
   
-  if (project.yt && project.yt !== "") {
+  const existingToggles = modalContent.querySelector('.video-toggles');
+  if (existingToggles) existingToggles.remove();
+  
+  if (project.final && project.final !== "") {
     modalContent.classList.remove("no-video");
     modalVideoWrapper.style.display = "block";
     progressContainer.style.display = "block"; 
     
-    // Reset state
     modalVideoWrapper.classList.remove("is-playing");
     
-    initPlayer(project.yt);
+    if (project.breakdown && project.breakdown !== "") {
+        const toggleContainer = document.createElement("div");
+        toggleContainer.className = "video-toggles";
+        
+        const btnFinal = document.createElement("button");
+        btnFinal.innerText = "FINAL";
+        btnFinal.className = "toggle-btn active";
+        
+        const btnBreakdown = document.createElement("button");
+        btnBreakdown.innerText = "BREAKDOWN";
+        btnBreakdown.className = "toggle-btn";
+        
+        btnFinal.onclick = (e) => {
+            e.stopPropagation();
+            btnBreakdown.classList.remove("active");
+            btnFinal.classList.add("active");
+            playVideoType(project.final);
+        };
+        btnBreakdown.onclick = (e) => {
+            e.stopPropagation();
+            btnFinal.classList.remove("active");
+            btnBreakdown.classList.add("active");
+            playVideoType(project.breakdown);
+        };
+        
+        toggleContainer.appendChild(btnFinal);
+        toggleContainer.appendChild(btnBreakdown);
+        modalContent.insertBefore(toggleContainer, modalVideoWrapper);
+    }
     
+    playVideoType(project.final);
   } else {
     modalContent.classList.add("no-video");
     modalVideoWrapper.style.display = "none";
     progressContainer.style.display = "none"; 
     
-    if (player) player.stopVideo();
+    if (activeVideoNode) activeVideoNode.pause();
   }
   
   modal.classList.add("is-active");
@@ -184,7 +207,11 @@ function closeModal() {
   stopProgressLoop();
   
   setTimeout(() => {
-    if (player) player.stopVideo();
+    if (activeVideoNode) {
+        activeVideoNode.pause();
+        activeVideoNode.removeAttribute('src');
+        activeVideoNode.load(); // Forces garbage collection of the stream buffer
+    }
     modalContent.classList.remove("no-video"); 
     modalVideoWrapper.classList.remove("is-playing");
   }, 300);
@@ -221,98 +248,110 @@ const RAW_DATA = [
   { 
     thumb: "01_karpeworld_thumbnail.jpg", 
     vid: "karpeworld_preview.webm", 
+    final: "",
+    breakdown: "",
     title: "KARPE WORLD",
     work: "Assets, Key, Camera track",
     desc: "My contribution to Karpe World focused on asset creation and keying. This delivery was a collaboration with Alf Løvvold. <br><br> <a href='https://www.instagram.com/karpeworld/' target='_blank'>Read more on Instagram...</a>",
-    yt: "" 
   },
   { 
     thumb: "02_flax_thumbnail.jpg",       
-    vid: "flax_preview.webm",       
+    vid: "flax_preview.webm",
+    final: "",
+    breakdown: "",     
     title: "FLAX",
     work: "CG, Key",
     desc: "More info coming soon...",
-    yt: "" 
   },
   { 
     thumb: "03_bossfight_thumbnail.jpg",  
     vid: "bossfight_preview.webm",  
+    final: "bossfight.webm",
+    breakdown: "bossfight_breakdown.webm",
     title: "BOSSFIGHT",
     work: "All aspects",
     desc: "My entry for the Boss Fight competition from CreateWithClint. Sound by Brage J Pedersen.",
-    yt: "4BDR6Tx-zl8"
   },
   { 
     thumb: "04_coast_thumbnail.jpg",      
     vid: "coast_preview.webm",      
+    final: "",
+    breakdown: "",  
     title: "COAST",
     work: "All aspects",
     desc: "More info coming soon...",
-    yt: "" 
   },
   { 
     thumb: "05_CCTV_thumbnail.jpg",       
     vid: "cctv_preview.webm",       
+    final: "cctv.webm",
+    breakdown: "cctv_breakdown.webm",  
     title: "CCTV",
     work: "All aspects",
     desc: "A hobby project researching the use of ray portal shader in blender.",
-    yt: "8qdRl0o8QBs"
   },
   { 
     thumb: "06_lego_thumbnail.jpg",       
     vid: "lego_preview.webm",       
+    final: "lego.webm",
+    breakdown: "lego_breakdown.webm",
     title: "LEGO",
     work: "All aspects",
     desc: "A fun exercise in trying to make procedural lego tools for blender.",
-    yt: "544oUGIO8uY"
   },
   { 
     thumb: "07_robotcitadel_thumbnail.jpg", 
     vid: "robotcitadel_preview.webm", 
+    final: "robotcitadel.webm",
+    breakdown: "robotcitadel_breakdown.webm",
     title: "ROBOT CITADEL",
     work: "All aspects",
     desc: "Hard-surface modelling, large scale environment. Sound by Brage J Pedersen.",
-    yt: "ZH79UuD8e6o"
   },
   { 
     thumb: "08_eternalascend_thumbnail.jpg", 
     vid: "eternalascend_preview.webm", 
+    final: "eternalascend.webm",
+    breakdown: "eternalascend_breakdown.webm",
     title: "ETERNAL ASCEND",
     work: "All aspects",
     desc: "My entry for the Eternal Ascend competition from CreateWithClint.",
-    yt: "S4hT78YlygY"
   },
   { 
     thumb: "09_hospital_thumbnail.jpg",   
     vid: "hospital_preview.webm",   
+    final: "hospital.webm",
+    breakdown: "hospital_breakdown.webm",
     title: "TAPE_04",
     work: "All aspects",
     desc: "Small horror-themed hobby project.",
-    yt: "f_4QprZOPUI"
   },
   { 
     thumb: "10_endlessengines_thumbnail.jpg", 
     vid: "endlessengines_preview.webm", 
+    final: "endlessengines.webm",
+    breakdown: "endlessengines_breakdown.webm",
     title: "ENDLESS ENGINES",
     work: "All aspects",
     desc: "My entry for the Endless Engines community challenge, selected among the Top 100 submissions.",
-    yt: "83_wCwVw_aU"
   },
   { 
     thumb: "11_dreamsequence_thumbnail.jpg", 
     vid: "dreamsequence_preview.webm", 
+    final: "dreamsequence.webm",
+    breakdown: "dreamsequence_breakdown.webm",
     title: "DREAM SEQUENCE",
     work: "All aspects",
     desc: "My entry for the Dream Sequence community challenge.",
-    yt: "XmoNzrBScck"
   },
   { 
     thumb: "12_playstation_thumbnail.jpg", 
     vid: "playstation_preview.webm", 
+    final: "playstation.webm",
+    breakdown: "",
     title: "PLAYSTATION",
     work: "All aspects",
     desc: "A hobby project, trying to make a promo video for a fictional event/reveal at playstation.",
-    yt: "vKFeNwjK0OY"
   }
 ];
 
@@ -323,7 +362,8 @@ const PROJECTS = RAW_DATA.map((p, i) => ({
   title: p.title,
   work: p.work,
   desc: p.desc,
-  yt: p.yt
+  final: p.final ? `assets/portfolio/${p.final}` : "",
+  breakdown: p.breakdown ? `assets/portfolio/${p.breakdown}` : ""
 }));
 
 // State for drag vs click
