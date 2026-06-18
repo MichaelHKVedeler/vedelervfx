@@ -27,26 +27,38 @@ let totalCacheSize = 0;
 const MAX_CACHE_BYTES = 128 * 1024 * 1024; // 128 MB cache limit to protect iOS
 
 async function fetchAndCacheVideo(url) {
+  // Catch both dropbox.com and any modified dropbox streaming links
+  if (url.includes("dropbox")) {
+    return url;
+  }
+
   if (videoCache.has(url)) return videoCache.get(url).objectUrl;
   
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const size = blob.size;
-  
-  // Evict oldest videos until we have enough space
-  while (totalCacheSize + size > MAX_CACHE_BYTES && videoCache.size > 0) {
-    const oldestKey = videoCache.keys().next().value;
-    const oldestData = videoCache.get(oldestKey);
-    URL.revokeObjectURL(oldestData.objectUrl);
-    totalCacheSize -= oldestData.size;
-    videoCache.delete(oldestKey);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network response was not ok");
+    
+    const blob = await response.blob();
+    const size = blob.size;
+    
+    // Evict oldest videos until we have enough space
+    while (totalCacheSize + size > MAX_CACHE_BYTES && videoCache.size > 0) {
+      const firstKey = videoCache.keys().next().value;
+      const oldest = videoCache.get(firstKey);
+      URL.revokeObjectURL(oldest.objectUrl);
+      totalCacheSize -= oldest.size;
+      videoCache.delete(firstKey);
+    }
+    
+    const objectUrl = URL.createObjectURL(blob);
+    videoCache.set(url, { objectUrl, size });
+    totalCacheSize += size;
+    
+    return objectUrl;
+  } catch (error) {
+    console.warn("Failed to cache video, falling back to direct URL:", error);
+    return url; // Fallback to raw URL if download fails
   }
-  
-  const objectUrl = URL.createObjectURL(blob);
-  videoCache.set(url, { objectUrl, size });
-  totalCacheSize += size;
-  
-  return objectUrl;
 }
 
 // --- CLICK TO TOGGLE PLAY/PAUSE ---
@@ -421,6 +433,15 @@ const RAW_DATA = [
     desc: "My entry for the Boss Fight competition from CreateWithClint. Sound by Brage J Pedersen.",
   },
   { 
+    thumb: "13_weavegenerator_thumbnail.jpg", 
+    vid: "weavegenerator_preview.webm", 
+    final: "https://dl.dropboxusercontent.com/scl/fi/l4y5xt5mtv9wzvvsos7aa/weavegenerator.webm?rlkey=was0i3rdkmpflw2q9fq65nllc&st=n43pqu6r&dl=0",
+    breakdown: "",
+    title: "WEAVE GENERATOR",
+    work: "All aspects",
+    desc: "A research project, creating a realistic weave pattern generator.",
+  },
+  { 
     thumb: "12_playstation_thumbnail.jpg", 
     vid: "playstation_preview.webm", 
     final: "playstation.webm",
@@ -431,16 +452,27 @@ const RAW_DATA = [
   }
 ];
 
-const PROJECTS = RAW_DATA.map((p, i) => ({
-  id: i,
-  img: `assets/portfolio/${p.thumb}`,
-  vid: `assets/portfolio/${p.vid}`,
-  title: p.title,
-  work: p.work,
-  desc: p.desc,
-  final: p.final ? `assets/portfolio/${p.final}` : "",
-  breakdown: p.breakdown ? `assets/portfolio/${p.breakdown}` : ""
-}));
+const PROJECTS = RAW_DATA.map((p, i) => {
+  // Check if final or breakdown are full web URLs (like Dropbox)
+  const finalPath = p.final && p.final.startsWith("http") 
+    ? p.final 
+    : (p.final ? `assets/portfolio/${p.final}` : "");
+
+  const breakdownPath = p.breakdown && p.breakdown.startsWith("http") 
+    ? p.breakdown 
+    : (p.breakdown ? `assets/portfolio/${p.breakdown}` : "");
+
+  return {
+    id: i,
+    img: `assets/portfolio/${p.thumb}`,
+    vid: `assets/portfolio/${p.vid}`,
+    title: p.title,
+    work: p.work,
+    desc: p.desc,
+    final: finalPath,
+    breakdown: breakdownPath
+  };
+});
 
 // State for drag vs click
 let isDragging = false;
