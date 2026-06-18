@@ -27,11 +27,25 @@ let totalCacheSize = 0;
 const MAX_CACHE_BYTES = 128 * 1024 * 1024; // 128 MB cache limit to protect iOS
 
 async function fetchAndCacheVideo(url) {
-  // Catch both dropbox.com and any modified dropbox streaming links
+  // 1. Catch dropbox streaming links
   if (url.includes("dropbox")) {
+    // We create a temporary, detached video element to hold the loader open
+    // until Dropbox responds with the actual video data.
+    await new Promise((resolve) => {
+      const tempVideo = document.createElement("video");
+      tempVideo.src = url;
+      tempVideo.preload = "auto";
+      tempVideo.muted = true;
+      
+      // The moment the first frame loads, resolve the promise to hide your spinner
+      tempVideo.onloadeddata = () => resolve();
+      tempVideo.onerror = () => resolve(); // Safety fallback if the link is broken
+    });
+    
     return url;
   }
 
+  // 2. Otherwise, use your standard local storage cache
   if (videoCache.has(url)) return videoCache.get(url).objectUrl;
   
   try {
@@ -41,7 +55,6 @@ async function fetchAndCacheVideo(url) {
     const blob = await response.blob();
     const size = blob.size;
     
-    // Evict oldest videos until we have enough space
     while (totalCacheSize + size > MAX_CACHE_BYTES && videoCache.size > 0) {
       const firstKey = videoCache.keys().next().value;
       const oldest = videoCache.get(firstKey);
@@ -57,7 +70,7 @@ async function fetchAndCacheVideo(url) {
     return objectUrl;
   } catch (error) {
     console.warn("Failed to cache video, falling back to direct URL:", error);
-    return url; // Fallback to raw URL if download fails
+    return url;
   }
 }
 
