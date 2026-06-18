@@ -352,6 +352,15 @@ const RAW_DATA = [
     desc: "A shot for a commercial for FLAX' christmas calendar.",
   },
   { 
+    thumb: "13_weavegenerator_thumbnail.jpg", 
+    vid: "weavegenerator_preview.webm", 
+    final: "https://dl.dropboxusercontent.com/scl/fi/l4y5xt5mtv9wzvvsos7aa/weavegenerator.webm?rlkey=was0i3rdkmpflw2q9fq65nllc&st=n43pqu6r&dl=0",
+    breakdown: "",
+    title: "WEAVE GENERATOR",
+    work: "All aspects",
+    desc: "A research project, creating a realistic weave pattern generator.",
+  },
+  { 
     thumb: "11_dreamsequence_thumbnail.jpg", 
     vid: "dreamsequence_preview.webm", 
     final: "dreamsequence.webm",
@@ -431,15 +440,6 @@ const RAW_DATA = [
     title: "BOSSFIGHT",
     work: "All aspects",
     desc: "My entry for the Boss Fight competition from CreateWithClint. Sound by Brage J Pedersen.",
-  },
-  { 
-    thumb: "13_weavegenerator_thumbnail.jpg", 
-    vid: "weavegenerator_preview.webm", 
-    final: "https://dl.dropboxusercontent.com/scl/fi/l4y5xt5mtv9wzvvsos7aa/weavegenerator.webm?rlkey=was0i3rdkmpflw2q9fq65nllc&st=n43pqu6r&dl=0",
-    breakdown: "",
-    title: "WEAVE GENERATOR",
-    work: "All aspects",
-    desc: "A research project, creating a realistic weave pattern generator.",
   },
   { 
     thumb: "12_playstation_thumbnail.jpg", 
